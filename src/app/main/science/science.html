@@ -198,6 +198,63 @@
   </section>
 
   <section class="gap-2 flex flex-col">
+    <h3 class="font-semibold">{{ 'science.logistics' | translate }}</h3>
+    <p class="text-sm text-gray-300">
+      {{ 'science.logisticsDescription' | translate }}
+    </p>
+    <div class="gap-3 flex flex-wrap items-end">
+      <lab-form-field label="science.platformLoads" class="w-56">
+        <lab-input-number
+          [buttons]="true"
+          [minimum]="rational.one"
+          [ngModel]="planner.platformLoads()"
+          (ngModelChange)="planner.platformLoads.set($event)"
+        ></lab-input-number>
+      </lab-form-field>
+      <lab-form-field label="science.roundTripMinutes" class="w-56">
+        <lab-input-number
+          [buttons]="true"
+          [minimum]="rational.one"
+          [ngModel]="planner.roundTripMinutes()"
+          (ngModelChange)="planner.roundTripMinutes.set($event)"
+        ></lab-input-number>
+      </lab-form-field>
+    </div>
+    <div class="overflow-auto">
+      <table class="lab-table">
+        <thead>
+          <tr>
+            <th>{{ 'science.location' | translate }}</th>
+            <th>{{ 'science.exportsPerHour' | translate }}</th>
+            <th>{{ 'science.importsPerHour' | translate }}</th>
+            <th>{{ 'science.silos' | translate }}</th>
+            <th>{{ 'science.platforms' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of planner.logistics(); track row.locationId) {
+            <tr>
+              <td>
+                <div class="gap-2 flex items-center">
+                  <lab-icon [value]="row.locationId" type="location"></lab-icon>
+                  <span>{{
+                    data().locationRecord[row.locationId]?.name ??
+                      row.locationId
+                  }}</span>
+                </div>
+              </td>
+              <td class="font-mono">{{ row.exportsPerHour | rate: 1 }}</td>
+              <td class="font-mono">{{ row.importsPerHour | rate: 1 }}</td>
+              <td class="font-mono">{{ row.silos | rate: 0 }}</td>
+              <td class="font-mono">{{ row.platforms | rate: 0 }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="gap-2 flex flex-col">
     <h3 class="font-semibold">{{ 'science.details' | translate }}</h3>
     <div class="overflow-auto">
       <table class="lab-table">

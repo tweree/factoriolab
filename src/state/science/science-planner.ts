@@ -51,6 +51,8 @@ export interface SciencePackPlan {
 export interface SciencePlanetSummary {
   locationId: string;
   packIds: string[];
+  /** Rockets to import items into this location, per display rate */
+  importRockets: Rational;
   /** Buildings including estimated buildings for imports */
   buildings: Rational;
   /** Resources including resources for imports */
@@ -72,6 +74,58 @@ export interface SciencePlan {
   /** Totals if each pack is made at the destination wherever possible */
   baselineBuildings: Rational;
   baselineResources: Rational;
+}
+
+export interface PlanetLogistics {
+  locationId: string;
+  /** Rocket launches per hour to ship packs to the destination */
+  exportsPerHour: Rational;
+  /** Rocket loads per hour to import items */
+  importsPerHour: Rational;
+  silos: Rational;
+  /** Estimated space platforms to carry exports and imports */
+  platforms: Rational;
+}
+
+/** Seconds a rocket silo needs per rocket part, if rocket parts exist */
+export function rocketPartTime(data: AdjustedDataset): Rational | undefined {
+  const recipeId = routeProducers(ROCKET_PART, data)[0] as string | undefined;
+  if (recipeId == null) return undefined;
+  const recipe = data.adjustedRecipe[recipeId];
+  return recipe.time.div(recipe.out[ROCKET_PART] ?? rational.one);
+}
+
+/**
+ * Estimate rocket launches and space platforms for a location. Platforms are
+ * estimated from the rocket loads per hour, the loads a platform carries per
+ * trip, and the duration of a round trip.
+ */
+export function planetLogistics(
+  planet: SciencePlanetSummary,
+  dispRateVal: Rational,
+  platformLoads: Rational,
+  roundTripMinutes: Rational,
+  partTime?: Rational,
+): PlanetLogistics {
+  const perHour = rational(3600n).div(dispRateVal);
+  const exportsPerHour = planet.shipRockets.mul(perHour);
+  const importsPerHour = planet.importRockets.mul(perHour);
+  let platforms = rational.zero;
+  if (platformLoads.nonzero() && roundTripMinutes.nonzero()) {
+    const tripsPerHour = exportsPerHour.add(importsPerHour).div(platformLoads);
+    const tripsPerPlatform = rational(60n).div(roundTripMinutes);
+    platforms = tripsPerHour.div(tripsPerPlatform).ceil();
+  }
+
+  return {
+    locationId: planet.locationId,
+    exportsPerHour,
+    importsPerHour,
+    silos: partTime
+      ? planet.rocketParts.div(dispRateVal).mul(partTime).ceil()
+      : rational.zero,
+    platforms,
+  };
 }
 
 /** Items consumed by technologies, in dataset order */
@@ -190,6 +244,7 @@ export function buildSciencePlan(
           resources: rational.zero,
           importBuildings: rational.zero,
           importResources: rational.zero,
+          importRockets: rational.zero,
           shipRockets: rational.zero,
           rocketParts: rational.zero,
           imports: [],
@@ -210,6 +265,7 @@ export function buildSciencePlan(
     planet.importBuildings = planet.importBuildings.add(imports.buildings);
     planet.importResources = planet.importResources.add(imports.resources);
     planet.shipRockets = planet.shipRockets.add(best.shipRockets);
+    planet.importRockets = planet.importRockets.add(best.rockets);
     planet.rocketParts = planet.rocketParts.add(best.rocketParts);
     addAmounts(entry.imports, best.imports);
   }
@@ -281,6 +337,22 @@ export class SciencePlanner {
         options: sortScienceOptions(options[itemId], criterion),
       })),
       criterion,
+    );
+  });
+
+  /** Assumed rocket loads a space platform carries per trip */
+  readonly platformLoads = signal(rational(20n));
+  /** Assumed duration of a platform round trip, in minutes */
+  readonly roundTripMinutes = signal(rational(15n));
+
+  readonly logistics = computed(() => {
+    const plan = this.plan();
+    const dispRateVal = this.settingsStore.displayRateInfo().value;
+    const loads = this.platformLoads();
+    const minutes = this.roundTripMinutes();
+    const partTime = rocketPartTime(this.context().data);
+    return plan.planets.map((p) =>
+      planetLogistics(p, dispRateVal, loads, minutes, partTime),
     );
   });
 

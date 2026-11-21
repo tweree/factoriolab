@@ -19,6 +19,8 @@ import {
   buildSciencePlan,
   importSources,
   packLocations,
+  planetLogistics,
+  rocketPartTime,
   ROCKET_PART,
   ScienceOption,
   sciencePackIds,
@@ -203,7 +205,81 @@ describe('science-planner', () => {
     });
   });
 
+  describe('rocketPartTime', () => {
+    it('should return the silo time per rocket part', () => {
+      expect(rocketPartTime(context.data)?.gt(rational.zero)).toBeTrue();
+      expect(
+        rocketPartTime({ ...context.data, itemRecipeIds: {} }),
+      ).toBeUndefined();
+      const noOutput = {
+        ...context.data,
+        itemRecipeIds: { [ROCKET_PART]: ['x'] },
+        adjustedRecipe: {
+          x: {
+            id: 'x',
+            time: rational(2),
+            out: {},
+            produces: new Set([ROCKET_PART]),
+          },
+        },
+      } as unknown as AdjustedDataset;
+      expect(rocketPartTime(noOutput)).toEqual(rational(2));
+    });
+  });
+
+  describe('planetLogistics', () => {
+    const summary = {
+      locationId: 'vulcanus',
+      packIds: [],
+      buildings: rational.zero,
+      resources: rational.zero,
+      importBuildings: rational.zero,
+      importResources: rational.zero,
+      importRockets: rational(1),
+      shipRockets: rational(2),
+      rocketParts: rational(100),
+      imports: [],
+    };
+
+    it('should estimate launches, silos and platforms', () => {
+      const result = planetLogistics(
+        summary,
+        rational(60),
+        rational(10),
+        rational(30),
+        rational(3),
+      );
+      expect(result.exportsPerHour).toEqual(rational(120));
+      expect(result.importsPerHour).toEqual(rational(60));
+      // 100 parts per minute at 3 seconds per part
+      expect(result.silos).toEqual(rational(5));
+      // 18 trips per hour, 2 trips per platform per hour
+      expect(result.platforms).toEqual(rational(9));
+    });
+
+    it('should handle missing rocket parts and zero assumptions', () => {
+      const result = planetLogistics(
+        summary,
+        rational(60),
+        rational.zero,
+        rational(30),
+      );
+      expect(result.silos).toEqual(rational.zero);
+      expect(result.platforms).toEqual(rational.zero);
+    });
+  });
+
   describe('SciencePlanner', () => {
+    it('should compute logistics for the plan', () => {
+      spyOn(planner, 'compare').and.returnValue([
+        option({ locationId: 'vulcanus', shipRockets: rational(1) }),
+      ]);
+      planner.selection.set(new Set([AUTOMATION]));
+      expect(planner.logistics().map((l) => l.locationId)).toEqual([
+        'vulcanus',
+      ]);
+    });
+
     it('should default to one pack per second', () => {
       const dispRate = TestBed.inject(SettingsStore).displayRateInfo().value;
       expect(planner.effectiveRate()).toEqual(dispRate);
@@ -322,6 +398,7 @@ describe('science-planner', () => {
           resources: rational.zero,
           importBuildings: rational.zero,
           importResources: rational.zero,
+          importRockets: rational.zero,
           shipRockets: rational(6, 100),
           rocketParts: rational(6),
           imports: [],

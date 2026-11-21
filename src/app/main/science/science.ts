@@ -13,7 +13,7 @@ import { SpoilBadge } from '~/components/spoil-badge/spoil-badge';
 import { RatePipe } from '~/components/steps/pipes/rate-pipe';
 import { Tooltip } from '~/components/tooltip/tooltip';
 import { Option } from '~/option/option';
-import { Rational } from '~/rational/rational';
+import { Rational, rational } from '~/rational/rational';
 import {
   totalBuildings,
   totalResources,
@@ -63,6 +63,7 @@ export class Science {
   protected readonly destination = SCIENCE_DESTINATION;
   protected readonly totalBuildings = totalBuildings;
   protected readonly totalResources = totalResources;
+  protected readonly rational = rational;
 
   locationNames(ids: string[]): string {
     const record = this.data().locationRecord;

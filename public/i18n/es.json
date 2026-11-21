@@ -556,7 +556,15 @@
     "sources": "Can be produced on: {{ sources }}",
     "noSource": "Cannot be produced on any location",
     "noLocation": "Cannot be produced on any location",
-    "empty": "Select science packs to plan their production"
+    "empty": "Select science packs to plan their production",
+    "logistics": "Logistics",
+    "logisticsDescription": "Rocket silos are included in the buildings above. Space platforms are a rough estimate from the rocket loads per hour, using the assumptions below.",
+    "platformLoads": "Rocket loads per platform trip",
+    "roundTripMinutes": "Round trip duration (minutes)",
+    "exportsPerHour": "Launches to Nauvis per hour",
+    "importsPerHour": "Import loads per hour",
+    "silos": "Rocket silos",
+    "platforms": "Space platforms (estimate)"
   },
   "select": {
     "noMatches": "No matches found"

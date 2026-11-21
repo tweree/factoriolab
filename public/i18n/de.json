@@ -556,7 +556,15 @@
     "sources": "Herstellbar auf: {{ sources }}",
     "noSource": "Auf keinem Ort herstellbar",
     "noLocation": "Auf keinem Ort herstellbar",
-    "empty": "Wähle Forschungspakete aus, um ihre Produktion zu planen"
+    "empty": "Wähle Forschungspakete aus, um ihre Produktion zu planen",
+    "logistics": "Logistik",
+    "logisticsDescription": "Raketensilos sind in den Gebäuden oben enthalten. Space Platforms sind eine grobe Schätzung aus den Raketenladungen pro Stunde, mit den Annahmen unten.",
+    "platformLoads": "Raketenladungen pro Plattform-Flug",
+    "roundTripMinutes": "Dauer Hin- und Rückflug (Minuten)",
+    "exportsPerHour": "Starts nach Nauvis pro Stunde",
+    "importsPerHour": "Importladungen pro Stunde",
+    "silos": "Raketensilos",
+    "platforms": "Space Platforms (Schätzung)"
   },
   "select": {
     "noMatches": "No matches found"
