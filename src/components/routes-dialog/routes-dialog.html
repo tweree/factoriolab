@@ -1,0 +1,150 @@
+<p class="text-sm text-gray-300">
+  {{ 'routes.description' | translate }}
+</p>
+
+<div class="overflow-auto">
+  <table class="lab-table">
+    <thead>
+      <tr>
+        <th>{{ 'routes.route' | translate }}</th>
+        <th>{{ 'routes.buildings' | translate }}</th>
+        <th>{{ 'routes.power' | translate }}</th>
+        <th>{{ 'routes.rawInputs' | translate }}</th>
+        <th>{{ 'routes.locations' | translate }}</th>
+        <th>{{ 'routes.cost' | translate }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (result of results(); track result.route.id) {
+        <tr>
+          <td>
+            <div class="gap-1 flex flex-wrap items-center">
+              @for (choice of result.route.choices; track choice[0]) {
+                <lab-icon
+                  [value]="choice[1]"
+                  type="recipe"
+                  [labTooltip]="choice[1]"
+                  labTooltipType="recipe"
+                  labTooltipPosition="adjacent"
+                ></lab-icon>
+              }
+              @if (result.current) {
+                <span
+                  class="ms-1 rounded-xs px-1 text-xs text-white bg-brand-700"
+                  >{{ 'routes.current' | translate }}</span
+                >
+              }
+            </div>
+          </td>
+          @if (result.resultType === 'solved') {
+            <td>
+              <div class="gap-1 flex flex-wrap items-center">
+                <span class="me-1 font-mono">{{
+                  result.buildings | rate: 0
+                }}</span>
+                @for (machine of result.machines; track machine.id) {
+                  <lab-icon
+                    [value]="machine.id"
+                    type="item"
+                    [text]="machine.value.toString()"
+                    [labTooltip]="machine.id"
+                    labTooltipType="machine"
+                    labTooltipPosition="adjacent"
+                  ></lab-icon>
+                }
+              </div>
+            </td>
+            <td class="font-mono whitespace-pre">
+              {{
+                result.power | power: 1 : objectivesStore.effectivePowerUnit()
+              }}
+            </td>
+            <td>
+              <div class="gap-2 flex flex-wrap items-center">
+                @for (input of result.rawInputs; track input.id) {
+                  <span class="gap-0.5 flex items-center">
+                    <span class="font-mono">{{ input.value | rate: 1 }}</span>
+                    <lab-icon
+                      [value]="input.id"
+                      type="item"
+                      [labTooltip]="input.id"
+                      labTooltipType="item"
+                      labTooltipPosition="adjacent"
+                    ></lab-icon>
+                  </span>
+                }
+              </div>
+            </td>
+            <td>
+              <div class="gap-1 flex flex-wrap items-center">
+                @for (locationId of result.locationIds; track locationId) {
+                  <lab-icon
+                    [value]="locationId"
+                    type="location"
+                    [labTooltip]="data().locationRecord[locationId]?.name"
+                  ></lab-icon>
+                } @empty {
+                  <span class="text-gray-400">{{
+                    'routes.anyLocation' | translate
+                  }}</span>
+                }
+              </div>
+            </td>
+            <td class="font-mono">{{ result.cost | rate: 1 }}</td>
+          } @else {
+            <td colspan="5" class="text-red-400">
+              {{ 'routes.failed' | translate }}
+            </td>
+          }
+          <td>
+            @if (result.resultType === 'solved' && !result.current) {
+              <button
+                type="button"
+                labButton
+                text="routes.apply"
+                [faIcon]="faCheck"
+                (click)="apply(result.route)"
+              ></button>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="7">{{ 'routes.empty' | translate }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (comparison().truncated) {
+  <p class="text-sm text-gray-400">{{ 'routes.truncated' | translate }}</p>
+}
+
+<div class="gap-1 sm:gap-2 flex flex-wrap items-end justify-between">
+  <lab-form-field label="routes.sortBy" class="w-48">
+    <lab-select
+      [options]="routeSortOptions"
+      [ngModel]="sort()"
+      (ngModelChange)="sort.set($event)"
+    ></lab-select>
+  </lab-form-field>
+  <div class="gap-1 sm:gap-2 flex">
+    <button
+      type="button"
+      labButton
+      text="routes.reset"
+      [faIcon]="faRotateLeft"
+      labTooltip="routes.resetTooltip"
+      (click)="reset()"
+    ></button>
+    <button
+      type="button"
+      labButton
+      text="close"
+      [faIcon]="faXmark"
+      (click)="dialogRef.close()"
+    ></button>
+  </div>
+</div>

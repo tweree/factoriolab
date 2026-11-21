@@ -473,6 +473,27 @@
   },
   "remove": "Remove",
   "reset": "Сброс",
+  "routes": {
+    "header": "Compare production routes: {{ name }}",
+    "compareTooltip": "Compare production routes",
+    "description": "Each route forces the listed recipe choices for this item and its ingredients, and solves the production chain for the current rate. Choices for other items are left to the solver.",
+    "route": "Route",
+    "buildings": "Buildings",
+    "power": "Power",
+    "rawInputs": "Raw resources",
+    "locations": "Locations",
+    "anyLocation": "Any",
+    "cost": "Cost",
+    "sortCost": "Cost",
+    "sortBy": "Sort by",
+    "current": "Current",
+    "apply": "Apply",
+    "failed": "No solution found for this route",
+    "empty": "No alternative routes found",
+    "truncated": "Some routes were omitted, as the number of combinations is too large.",
+    "reset": "Let solver decide",
+    "resetTooltip": "Reset recipe choices for all items in these routes to the defaults"
+  },
   "save": "Save",
   "select": {
     "noMatches": "No matches found"

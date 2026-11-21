@@ -1,6 +1,7 @@
 import { ApplicationRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
+import { rational } from '~/rational/rational';
 import { initialColumnsState } from '~/state/preferences/columns-state';
 import { ItemId } from '~/tests/item-id';
 import { Mocks } from '~/tests/mocks/mocks';
@@ -63,6 +64,34 @@ describe('Steps', () => {
         },
       });
       expect(component['leftSpan']()).toEqual(4);
+    });
+  });
+
+  describe('openRoutes', () => {
+    it('should skip steps without an item', () => {
+      spyOn(component['dialog'], 'open');
+      component.openRoutes({ id: '0' });
+      expect(component['dialog'].open).not.toHaveBeenCalled();
+    });
+
+    it('should open the dialog with the step rate', () => {
+      const open = spyOn(component['dialog'], 'open');
+      const dispRate = component['displayRateInfo']().value;
+      component.openRoutes({
+        id: '0',
+        itemId: ItemId.IronPlate,
+        items: rational(120),
+      });
+      expect(open.calls.mostRecent().args[1]?.data).toEqual(
+        jasmine.objectContaining({
+          itemId: ItemId.IronPlate,
+          rate: rational(120).div(dispRate),
+        }),
+      );
+      component.openRoutes({ id: '0', itemId: ItemId.IronPlate });
+      expect(open.calls.mostRecent().args[1]?.data).toEqual(
+        jasmine.objectContaining({ rate: rational.one.div(dispRate) }),
+      );
     });
   });
 

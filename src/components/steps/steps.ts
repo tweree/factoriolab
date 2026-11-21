@@ -15,6 +15,7 @@ import {
   faAngleRight,
   faArrowRotateLeft,
   faArrowUpRightFromSquare,
+  faCodeCompare,
   faEyeSlash,
   faFileArrowDown,
   faLink,
@@ -41,6 +42,7 @@ import { PreferencesStore } from '~/state/preferences/preferences-store';
 import { RecipeState } from '~/state/recipes/recipe-state';
 import { RecipesStore } from '~/state/recipes/recipes-store';
 import { RouterSync } from '~/state/router/router-sync';
+import { RouteComparison } from '~/state/routes/route-comparison';
 import { SettingsStore } from '~/state/settings/settings-store';
 import { TableStore } from '~/state/table/table-store';
 import { TranslatePipe } from '~/translate/translate-pipe';
@@ -54,6 +56,7 @@ import { ColumnsDialog } from '../columns-dialog/columns-dialog';
 import { Icon } from '../icon/icon';
 import { InputNumber } from '../input-number/input-number';
 import { ModulesSelect } from '../modules-select/modules-select';
+import { RoutesDialog, RoutesDialogData } from '../routes-dialog/routes-dialog';
 import { Select } from '../select/select';
 import { SortHeader } from '../sort-header/sort-header';
 import { Tooltip } from '../tooltip/tooltip';
@@ -106,6 +109,7 @@ export class Steps {
   protected readonly objectivesStore = inject(ObjectivesStore);
   protected readonly preferencesStore = inject(PreferencesStore);
   protected readonly recipesStore = inject(RecipesStore);
+  protected readonly routeComparison = inject(RouteComparison);
   protected readonly routerSync = inject(RouterSync);
   protected readonly settingsStore = inject(SettingsStore);
   protected readonly tableStore = inject(TableStore);
@@ -121,6 +125,7 @@ export class Steps {
   protected readonly faAngleRight = faAngleRight;
   protected readonly faArrowRotateLeft = faArrowRotateLeft;
   protected readonly faArrowUpRightFromSquare = faArrowUpRightFromSquare;
+  protected readonly faCodeCompare = faCodeCompare;
   protected readonly faEyeSlash = faEyeSlash;
   protected readonly faFileArrowDown = faFileArrowDown;
   protected readonly faLink = faLink;
@@ -180,6 +185,25 @@ export class Steps {
 
   // Store per-recipe preferences in component memory
   perMachine: Record<string, boolean | undefined> = {};
+
+  openRoutes(step: Step): void {
+    const itemId = step.itemId;
+    if (itemId == null) return;
+    const data = this.data();
+    const dispRateVal = this.displayRateInfo().value;
+    const rate = step.items?.nonzero()
+      ? step.items.div(dispRateVal)
+      : rational.one.div(dispRateVal);
+    const config: { data: RoutesDialogData } = {
+      data: {
+        header: 'routes.header',
+        headerParams: { name: data.itemRecord[itemId].name },
+        itemId,
+        rate,
+      },
+    };
+    this.dialog.open(RoutesDialog, config);
+  }
 
   toggleStep(stepId: string): void {
     this.expandedSteps.update((s) =>

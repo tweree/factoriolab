@@ -493,6 +493,20 @@
                   >{{ data().recipeRecord[step.recipeId].name }}</span
                 >
                 <lab-recipes-select [step]="step"></lab-recipes-select>
+                @if (
+                  step.itemId &&
+                  routeComparison.itemsWithRoutes().has(step.itemId)
+                ) {
+                  <button
+                    type="button"
+                    labButton
+                    [border]="false"
+                    [faIcon]="faCodeCompare"
+                    labTooltip="routes.compareTooltip"
+                    [attr.aria-label]="'routes.compareTooltip' | translate"
+                    (click)="openRoutes(step)"
+                  ></button>
+                }
                 @if (step.recipe.producers?.length) {
                   <lab-select
                     [iconOnly]="true"
