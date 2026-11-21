@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
 
-import { DEFAULT_MOD } from '~/data/datasets';
+import { DEFAULT_MOD, modRecord } from '~/data/datasets';
 import { Migration } from '~/state/router/migration';
 import { RouterSync } from '~/state/router/router-sync';
 import { coalesce } from '~/utils/nullish';
@@ -33,19 +33,11 @@ export const idGuard: CanActivateFn = (route) => {
       };
       return result();
     }
-    case 'factorio':
-      return router.createUrlTree([DEFAULT_MOD]);
-    case 'final-factory':
-      return router.createUrlTree(['ffy']);
-    case 'foundry':
-      return router.createUrlTree(['fdy']);
-    case 'outworld-station':
-      return router.createUrlTree(['ows']);
-    case 'satisfactory':
-      return router.createUrlTree(['sfy']);
-    case 'techtonica':
-      return router.createUrlTree(['tta']);
   }
+
+  // Redirect old game shortcuts and unsupported datasets to the default mod
+  if (id == null || modRecord[id] == null)
+    return router.createUrlTree([DEFAULT_MOD]);
 
   return true;
 };

@@ -1,4 +1,4 @@
-import { Game } from '~/data/game';
+import { CUSTOM_MOD, Game, isGameEnabled } from '~/data/game';
 import { ModInfo } from '~/data/mod';
 import { Option } from '~/option/option';
 import { toRecord } from '~/utils/record';
@@ -127,10 +127,18 @@ export const datasets: Datasets = {
   ],
 };
 
-export const modRecord = toRecord(datasets.mods);
+/**
+ * Mods available in this build. The custom dataset remains reachable directly
+ * via URL (e.g. for use with the editor), but is not offered in game options.
+ */
+export const enabledMods = datasets.mods.filter(
+  (m) => isGameEnabled(m.game) || m.id === CUSTOM_MOD,
+);
+
+export const modRecord = toRecord(enabledMods);
 
 export function modOptions(game: Game): Option[] {
-  return datasets.mods
+  return enabledMods
     .filter((m) => m.game === game)
     .map((m): Option => ({ label: m.name, value: m.id }));
 }

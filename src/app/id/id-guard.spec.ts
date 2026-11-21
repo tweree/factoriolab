@@ -46,18 +46,22 @@ describe('idGuard', () => {
     );
   });
 
-  it('should migrate old game shortcuts', async () => {
+  it('should redirect old game shortcuts to the default mod', async () => {
     const rth = await RouterTestingHarness.create('/factorio');
     expect(router.url).toEqual('/2x1');
-    await rth.navigateByUrl('/final-factory');
-    expect(router.url).toEqual('/ffy');
-    await rth.navigateByUrl('/foundry');
-    expect(router.url).toEqual('/fdy');
-    await rth.navigateByUrl('/outworld-station');
-    expect(router.url).toEqual('/ows');
     await rth.navigateByUrl('/satisfactory');
-    expect(router.url).toEqual('/sfy');
-    await rth.navigateByUrl('/techtonica');
-    expect(router.url).toEqual('/tta');
+    expect(router.url).toEqual('/2x1');
+  });
+
+  it('should redirect unsupported datasets to the default mod', async () => {
+    const rth = await RouterTestingHarness.create('/sfy');
+    expect(router.url).toEqual('/2x1');
+    await rth.navigateByUrl('/unknown');
+    expect(router.url).toEqual('/2x1');
+  });
+
+  it('should allow supported datasets', async () => {
+    await RouterTestingHarness.create('/1.1/list');
+    expect(router.url).toEqual('/1.1/list');
   });
 });

@@ -19,7 +19,17 @@ export type Game =
 
 export const CUSTOM_MOD = 'cst';
 
-export const gameOptions: Option<Game>[] = [
+/**
+ * Games available in this build. Data and logic for other games remain in the
+ * repository (to simplify syncing with upstream) but are not reachable.
+ */
+export const enabledGames: Game[] = ['factorio'];
+
+export function isGameEnabled(game: Game): boolean {
+  return enabledGames.includes(game);
+}
+
+const allGameOptions: Option<Game>[] = [
   {
     value: 'captain-of-industry',
     label: 'options.game.captainOfIndustry',
@@ -111,3 +121,7 @@ export const gameOptions: Option<Game>[] = [
     iconType: 'system',
   },
 ];
+
+export const gameOptions: Option<Game>[] = allGameOptions.filter((o) =>
+  isGameEnabled(o.value),
+);

@@ -66,15 +66,17 @@
 <lab-accordion [multi]="true">
   <lab-accordion-item text="game" [note]="modId()">
     <ng-template>
-      <lab-form-field label="game">
-        <lab-select
-          [options]="gameOptions"
-          labTooltip="settings.gameTooltip"
-          labTooltipPosition="adjacent"
-          [ngModel]="data().game"
-          (ngModelChange)="routerSync.setGame($event, ['list'])"
-        ></lab-select>
-      </lab-form-field>
+      @if (gameOptions.length > 1) {
+        <lab-form-field label="game">
+          <lab-select
+            [options]="gameOptions"
+            labTooltip="settings.gameTooltip"
+            labTooltipPosition="adjacent"
+            [ngModel]="data().game"
+            (ngModelChange)="routerSync.setGame($event, ['list'])"
+          ></lab-select>
+        </lab-form-field>
+      }
 
       @if (data().flags.has('mods') && modId(); as modId) {
         <lab-form-field label="modSet">

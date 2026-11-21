@@ -12,13 +12,15 @@
 <hr class="self-stretch border-t border-gray-600" />
 
 <main class="w-xs basis-120 gap-3 flex grow flex-col">
-  <lab-form-field label="game">
-    <lab-select
-      [options]="gameOptions"
-      [ngModel]="data().game"
-      (ngModelChange)="routerSync.setGame($event)"
-    ></lab-select>
-  </lab-form-field>
+  @if (gameOptions.length > 1) {
+    <lab-form-field label="game">
+      <lab-select
+        [options]="gameOptions"
+        [ngModel]="data().game"
+        (ngModelChange)="routerSync.setGame($event)"
+      ></lab-select>
+    </lab-form-field>
+  }
   @if (settingsStore.modInfo()) {
     @if (data().flags.has('mods') && settingsStore.modId(); as modId) {
       <lab-form-field label="modSet">
