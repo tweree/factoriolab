@@ -1,0 +1,62 @@
+name: pages
+on:
+  push:
+    branches: [main, claude/repo-review-understanding-0q9o1j]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Only deploy from forks; the upstream project deploys via build.yml
+    if: github.repository != 'factoriolab/factoriolab'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run build
+        run: npm run build -- --base-href "/${{ github.event.repository.name }}/"
+
+      - name: Prepare site
+        working-directory: dist/factoriolab/browser
+        run: |
+          # Remove the upstream project's analytics script
+          perl -0pi -e 's#<script[^>]*googletagmanager[^>]*>\s*</script>##g' index.html
+          # Serve the app for deep links
+          cp index.html 404.html
+          touch .nojekyll
+
+      - name: Regenerate service worker manifest
+        run: npx ngsw-config dist/factoriolab/browser ngsw-config.json "/${{ github.event.repository.name }}/"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/factoriolab/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
