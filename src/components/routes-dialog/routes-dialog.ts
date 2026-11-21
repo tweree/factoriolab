@@ -31,6 +31,7 @@ import { DialogData } from '../dialog/dialog';
 import { FormField } from '../form-field/form-field';
 import { Icon } from '../icon/icon';
 import { Select } from '../select/select';
+import { SpoilBadge } from '../spoil-badge/spoil-badge';
 import { PowerPipe } from '../steps/pipes/power-pipe';
 import { RatePipe } from '../steps/pipes/rate-pipe';
 import { Tooltip } from '../tooltip/tooltip';
@@ -53,6 +54,7 @@ export const routeSortOptions: Option<RouteSortKey>[] = [
 @Component({
   selector: 'lab-routes-dialog',
   imports: [
+    SpoilBadge,
     FormsModule,
     Button,
     FormField,

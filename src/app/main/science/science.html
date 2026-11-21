@@ -112,6 +112,9 @@
                       labTooltipType="item"
                       labTooltipPosition="adjacent"
                     ></lab-icon>
+                    @if (planet.shipRockets.nonzero()) {
+                      <lab-spoil-badge [itemId]="id"></lab-spoil-badge>
+                    }
                   }
                 </div>
               </td>
@@ -149,6 +152,7 @@
                         labTooltipType="item"
                         labTooltipPosition="adjacent"
                       ></lab-icon>
+                      <lab-spoil-badge [itemId]="input.id"></lab-spoil-badge>
                     </span>
                   } @empty {
                     <span class="text-gray-400">{{
@@ -218,7 +222,7 @@
                       >
                     }
                     @if (!option.feasible) {
-                      <span class="text-xs text-red-400">{{
+                      <span class="text-xs text-complement-400">{{
                         'science.notProduceable' | translate
                       }}</span>
                     }
@@ -229,6 +233,7 @@
                 <td class="font-mono">
                   @if (option.shipRockets.nonzero()) {
                     {{ option.shipRockets | rate: 2 }}
+                    <lab-spoil-badge [itemId]="pack.itemId"></lab-spoil-badge>
                   }
                 </td>
                 <td>
@@ -252,6 +257,7 @@
                           input.value | rate: 1
                         }}</span>
                         <lab-icon [value]="input.id" type="item"></lab-icon>
+                        <lab-spoil-badge [itemId]="input.id"></lab-spoil-badge>
                         @for (
                           source of option.importSources[input.id].slice(0, 2);
                           track source
@@ -275,7 +281,7 @@
                     <span>{{ data().itemRecord[pack.itemId].name }}</span>
                   </div>
                 </td>
-                <td colspan="5" class="text-red-400">
+                <td colspan="5" class="text-complement-400">
                   {{ 'science.noLocation' | translate }}
                 </td>
               </tr>

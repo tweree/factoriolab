@@ -9,6 +9,7 @@ import { FormField } from '~/components/form-field/form-field';
 import { Icon } from '~/components/icon/icon';
 import { InputNumber } from '~/components/input-number/input-number';
 import { Select } from '~/components/select/select';
+import { SpoilBadge } from '~/components/spoil-badge/spoil-badge';
 import { RatePipe } from '~/components/steps/pipes/rate-pipe';
 import { Tooltip } from '~/components/tooltip/tooltip';
 import { Option } from '~/option/option';
@@ -30,6 +31,7 @@ export const scienceCriterionOptions: Option<ScienceCriterion>[] = [
 @Component({
   selector: 'lab-science',
   imports: [
+    SpoilBadge,
     FormsModule,
     Button,
     Checkbox,

@@ -76,11 +76,12 @@
                 }
                 @for (input of result.imports; track input.id) {
                   <span
-                    class="gap-0.5 text-amber-400 flex items-center"
+                    class="gap-0.5 flex items-center text-complement-300"
                     [labTooltip]="'routes.importTooltip' | translate"
                   >
                     <span class="font-mono">{{ input.value | rate: 1 }}</span>
                     <lab-icon [value]="input.id" type="item"></lab-icon>
+                    <lab-spoil-badge [itemId]="input.id"></lab-spoil-badge>
                     <span aria-hidden="true">*</span>
                   </span>
                 }
@@ -103,7 +104,7 @@
             </td>
             <td class="font-mono">{{ result.cost | rate: 1 }}</td>
           } @else {
-            <td colspan="5" class="text-red-400">
+            <td colspan="5" class="text-complement-400">
               {{ 'routes.failed' | translate }}
             </td>
           }

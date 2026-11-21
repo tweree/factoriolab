@@ -640,6 +640,11 @@
     "wagonRankEmpty": "No wagons selected",
     "wagonRankTooltip": "Select the order of preferred wagons to be used where applicable"
   },
+  "spoilage": {
+    "critical": "Verdirbt in {{ time }}: zu schnell für den Transport zwischen Planeten",
+    "warning": "Verdirbt in {{ time }}: braucht schnellen Transport",
+    "low": "Verdirbt in {{ time }}"
+  },
   "steps": {
     "beaconsUndoTooltip": "Alle Effektverteilerveränderungen rückgängig machen",
     "beltSelectTooltip": "Click to select belt and stack size",

@@ -640,6 +640,11 @@
     "wagonRankEmpty": "No wagons selected",
     "wagonRankTooltip": "Select the order of preferred wagons to be used where applicable"
   },
+  "spoilage": {
+    "critical": "Spoils in {{ time }}: too fast to ship between planets",
+    "warning": "Spoils in {{ time }}: needs fast transport",
+    "low": "Spoils in {{ time }}"
+  },
   "steps": {
     "beaconsUndoTooltip": "Отменить все изменения маяков",
     "beltSelectTooltip": "Click to select belt and stack size",

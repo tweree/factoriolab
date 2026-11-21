@@ -640,6 +640,11 @@
     "wagonRankEmpty": "선택된 화물차 없음",
     "wagonRankTooltip": "해당되는 경우 사용할 선호 화물차의 순서를 선택하세요"
   },
+  "spoilage": {
+    "critical": "Spoils in {{ time }}: too fast to ship between planets",
+    "warning": "Spoils in {{ time }}: needs fast transport",
+    "low": "Spoils in {{ time }}"
+  },
   "steps": {
     "beaconsUndoTooltip": "모든 신호기 수정 취소",
     "beltSelectTooltip": "클릭하여 벨트와 묶음 크기 선택",

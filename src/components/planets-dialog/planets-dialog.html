@@ -47,7 +47,7 @@
                   }
                 </div>
               } @else {
-                <span class="text-red-400">{{
+                <span class="text-complement-400">{{
                   'planets.notProduceable' | translate
                 }}</span>
               }
@@ -108,6 +108,7 @@
                       labTooltipType="item"
                       labTooltipPosition="adjacent"
                     ></lab-icon>
+                    <lab-spoil-badge [itemId]="input.id"></lab-spoil-badge>
                   </span>
                 } @empty {
                   <span class="text-gray-400">{{
@@ -115,7 +116,7 @@
                   }}</span>
                 }
                 @if (result.unshippable) {
-                  <span class="text-sm text-amber-400">{{
+                  <span class="text-sm text-complement-300">{{
                     'planets.unshippable' | translate
                   }}</span>
                 }
@@ -127,7 +128,7 @@
               }}
             </td>
           } @else {
-            <td colspan="5" class="text-red-400">
+            <td colspan="5" class="text-complement-400">
               {{ 'planets.failed' | translate }}
             </td>
           }
