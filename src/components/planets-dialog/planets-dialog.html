@@ -1,0 +1,158 @@
+<p class="text-sm text-gray-300">
+  {{ 'planets.description' | translate }}
+</p>
+
+<div class="overflow-auto">
+  <table class="lab-table">
+    <thead>
+      <tr>
+        <th>{{ 'planets.location' | translate }}</th>
+        <th>{{ 'planets.recipe' | translate }}</th>
+        <th>{{ 'planets.buildings' | translate }}</th>
+        <th>{{ 'planets.resources' | translate }}</th>
+        <th>{{ 'planets.imports' | translate }}</th>
+        <th>{{ 'planets.power' | translate }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (result of results(); track result.locationId) {
+        <tr [class.opacity-60]="!result.feasible">
+          <td>
+            <div class="gap-2 flex items-center">
+              <lab-icon [value]="result.locationId" type="location"></lab-icon>
+              <span>{{
+                data().locationRecord[result.locationId]?.name ??
+                  result.locationId
+              }}</span>
+              @if (result.locationId === bestId()) {
+                <span class="rounded-xs px-1 text-xs text-white bg-brand-700">{{
+                  'planets.best' | translate
+                }}</span>
+              }
+            </div>
+          </td>
+          @if (result.resultType === 'solved') {
+            <td>
+              @if (result.feasible) {
+                <div class="gap-1 flex flex-wrap items-center">
+                  @for (recipeId of result.recipeIds; track recipeId) {
+                    <lab-icon
+                      [value]="recipeId"
+                      type="recipe"
+                      [labTooltip]="recipeId"
+                      labTooltipType="recipe"
+                      labTooltipPosition="adjacent"
+                    ></lab-icon>
+                  }
+                </div>
+              } @else {
+                <span class="text-red-400">{{
+                  'planets.notProduceable' | translate
+                }}</span>
+              }
+            </td>
+            <td>
+              <div class="gap-1 flex flex-wrap items-center">
+                <span class="me-1 font-mono">{{
+                  result.buildings | rate: 0
+                }}</span>
+                @for (machine of result.machines; track machine.id) {
+                  <lab-icon
+                    [value]="machine.id"
+                    type="item"
+                    [text]="machine.value.toString()"
+                    [labTooltip]="machine.id"
+                    labTooltipType="machine"
+                    labTooltipPosition="adjacent"
+                  ></lab-icon>
+                }
+              </div>
+            </td>
+            <td>
+              <div class="gap-2 flex flex-wrap items-center">
+                <span class="me-1 font-semibold font-mono">{{
+                  result.resources | rate: 1
+                }}</span>
+                @for (input of result.rawInputs; track input.id) {
+                  <span class="gap-0.5 flex items-center">
+                    <span class="font-mono">{{ input.value | rate: 1 }}</span>
+                    <lab-icon
+                      [value]="input.id"
+                      type="item"
+                      [labTooltip]="input.id"
+                      labTooltipType="item"
+                      labTooltipPosition="adjacent"
+                    ></lab-icon>
+                  </span>
+                }
+              </div>
+            </td>
+            <td>
+              <div class="gap-2 flex flex-wrap items-center">
+                @if (result.imports.length) {
+                  <span
+                    class="me-1 font-mono"
+                    [labTooltip]="'planets.rocketsTooltip' | translate"
+                    >{{ result.rockets | rate: 1 }}
+                    {{ 'planets.rocketsShort' | translate }}</span
+                  >
+                }
+                @for (input of result.imports; track input.id) {
+                  <span class="gap-0.5 flex items-center">
+                    <span class="font-mono">{{ input.value | rate: 1 }}</span>
+                    <lab-icon
+                      [value]="input.id"
+                      type="item"
+                      [labTooltip]="input.id"
+                      labTooltipType="item"
+                      labTooltipPosition="adjacent"
+                    ></lab-icon>
+                  </span>
+                } @empty {
+                  <span class="text-gray-400">{{
+                    'planets.noImports' | translate
+                  }}</span>
+                }
+                @if (result.unshippable) {
+                  <span class="text-sm text-amber-400">{{
+                    'planets.unshippable' | translate
+                  }}</span>
+                }
+              </div>
+            </td>
+            <td class="font-mono whitespace-pre">
+              {{
+                result.power | power: 1 : objectivesStore.effectivePowerUnit()
+              }}
+            </td>
+          } @else {
+            <td colspan="5" class="text-red-400">
+              {{ 'planets.failed' | translate }}
+            </td>
+          }
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6">{{ 'planets.empty' | translate }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="gap-1 sm:gap-2 flex flex-wrap items-end justify-between">
+  <lab-form-field label="planets.sortBy" class="w-48">
+    <lab-select
+      [options]="planetSortOptions"
+      [ngModel]="sort()"
+      (ngModelChange)="sort.set($event)"
+    ></lab-select>
+  </lab-form-field>
+  <button
+    type="button"
+    labButton
+    text="close"
+    [faIcon]="faXmark"
+    (click)="dialogRef.close()"
+  ></button>
+</div>

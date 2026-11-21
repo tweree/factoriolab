@@ -42,6 +42,7 @@ describe('RouteComparison', () => {
       power: rational.zero,
       pollution: rational.zero,
       rawInputs: [],
+      imports: [],
       locationIds: [],
       current: false,
       ...override,
@@ -61,10 +62,8 @@ describe('RouteComparison', () => {
       cost: undefined,
       buildings: rational(2),
       power: rational(1),
-      rawInputs: [
-        { id: 'x', value: rational(1) },
-        { id: 'y', value: rational(1) },
-      ],
+      rawInputs: [{ id: 'x', value: rational(1) }],
+      imports: [{ id: 'y', value: rational(1) }],
     });
     const failed = result({
       route: { id: 'f', choices: [] },
@@ -221,8 +220,8 @@ describe('RouteComparison', () => {
         rawInputs: [
           { id: 'water', value: rational(600) },
           { id: 'ore', value: rational(180) },
-          { id: 'acid', value: rational(180) },
         ],
+        imports: [{ id: 'acid', value: rational(180) }],
         locationIds: ['nauvis'],
         current: true,
       });

@@ -507,6 +507,17 @@
                     (click)="openRoutes(step)"
                   ></button>
                 }
+                @if (step.itemId && planetComparison.available()) {
+                  <button
+                    type="button"
+                    labButton
+                    [border]="false"
+                    [faIcon]="faEarthEurope"
+                    labTooltip="planets.compareTooltip"
+                    [attr.aria-label]="'planets.compareTooltip' | translate"
+                    (click)="openPlanets(step)"
+                  ></button>
+                }
                 @if (step.recipe.producers?.length) {
                   <lab-select
                     [iconOnly]="true"

@@ -16,6 +16,7 @@ import {
   faArrowRotateLeft,
   faArrowUpRightFromSquare,
   faCodeCompare,
+  faEarthEurope,
   faEyeSlash,
   faFileArrowDown,
   faLink,
@@ -28,7 +29,7 @@ import {
 import { RatePipe } from '~/components/steps/pipes/rate-pipe';
 import { IsPowerPipe } from '~/data/schema/item';
 import { Exporter } from '~/exporter/exporter';
-import { rational } from '~/rational/rational';
+import { Rational, rational } from '~/rational/rational';
 import { Step } from '~/solver/step';
 import { BeaconSettings } from '~/state/beacon-settings';
 import { Hydration } from '~/state/hydration';
@@ -42,6 +43,7 @@ import { PreferencesStore } from '~/state/preferences/preferences-store';
 import { RecipeState } from '~/state/recipes/recipe-state';
 import { RecipesStore } from '~/state/recipes/recipes-store';
 import { RouterSync } from '~/state/router/router-sync';
+import { PlanetComparison } from '~/state/routes/planet-comparison';
 import { RouteComparison } from '~/state/routes/route-comparison';
 import { SettingsStore } from '~/state/settings/settings-store';
 import { TableStore } from '~/state/table/table-store';
@@ -56,6 +58,10 @@ import { ColumnsDialog } from '../columns-dialog/columns-dialog';
 import { Icon } from '../icon/icon';
 import { InputNumber } from '../input-number/input-number';
 import { ModulesSelect } from '../modules-select/modules-select';
+import {
+  PlanetsDialog,
+  PlanetsDialogData,
+} from '../planets-dialog/planets-dialog';
 import { RoutesDialog, RoutesDialogData } from '../routes-dialog/routes-dialog';
 import { Select } from '../select/select';
 import { SortHeader } from '../sort-header/sort-header';
@@ -68,6 +74,13 @@ import { StepHrefPipe } from './pipes/step-href-pipe';
 import { RecipesSelect } from './recipes-select/recipes-select';
 import { StepsSort } from './steps-sort';
 import { TotalCell } from './total-cell/total-cell';
+
+interface ItemCompareData {
+  header: string;
+  headerParams: { name: string };
+  itemId: string;
+  rate: Rational;
+}
 
 @Component({
   selector: 'lab-steps',
@@ -109,6 +122,7 @@ export class Steps {
   protected readonly objectivesStore = inject(ObjectivesStore);
   protected readonly preferencesStore = inject(PreferencesStore);
   protected readonly recipesStore = inject(RecipesStore);
+  protected readonly planetComparison = inject(PlanetComparison);
   protected readonly routeComparison = inject(RouteComparison);
   protected readonly routerSync = inject(RouterSync);
   protected readonly settingsStore = inject(SettingsStore);
@@ -126,6 +140,7 @@ export class Steps {
   protected readonly faArrowRotateLeft = faArrowRotateLeft;
   protected readonly faArrowUpRightFromSquare = faArrowUpRightFromSquare;
   protected readonly faCodeCompare = faCodeCompare;
+  protected readonly faEarthEurope = faEarthEurope;
   protected readonly faEyeSlash = faEyeSlash;
   protected readonly faFileArrowDown = faFileArrowDown;
   protected readonly faLink = faLink;
@@ -186,23 +201,37 @@ export class Steps {
   // Store per-recipe preferences in component memory
   perMachine: Record<string, boolean | undefined> = {};
 
-  openRoutes(step: Step): void {
+  /** Dialog data for comparing ways to produce the item of a step */
+  private compareData(step: Step, header: string): ItemCompareData | undefined {
     const itemId = step.itemId;
-    if (itemId == null) return;
+    if (itemId == null) return undefined;
     const data = this.data();
     const dispRateVal = this.displayRateInfo().value;
     const rate = step.items?.nonzero()
       ? step.items.div(dispRateVal)
       : rational.one.div(dispRateVal);
-    const config: { data: RoutesDialogData } = {
-      data: {
-        header: 'routes.header',
-        headerParams: { name: data.itemRecord[itemId].name },
-        itemId,
-        rate,
-      },
+    return {
+      header,
+      headerParams: { name: data.itemRecord[itemId].name },
+      itemId,
+      rate,
     };
-    this.dialog.open(RoutesDialog, config);
+  }
+
+  openRoutes(step: Step): void {
+    const data: RoutesDialogData | undefined = this.compareData(
+      step,
+      'routes.header',
+    );
+    if (data) this.dialog.open(RoutesDialog, { data });
+  }
+
+  openPlanets(step: Step): void {
+    const data: PlanetsDialogData | undefined = this.compareData(
+      step,
+      'planets.header',
+    );
+    if (data) this.dialog.open(PlanetsDialog, { data });
   }
 
   toggleStep(stepId: string): void {

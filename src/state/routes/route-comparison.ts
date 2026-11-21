@@ -59,7 +59,7 @@ export function sortRouteResults(
       case 'power':
         return r.power;
       case 'raw':
-        return sumAmounts(r.rawInputs);
+        return sumAmounts(r.rawInputs).add(sumAmounts(r.imports));
     }
   };
 
@@ -166,6 +166,7 @@ export class RouteComparison {
     let pollution = rational.zero;
     const machines: Record<string, Rational> = {};
     const rawInputs: Record<string, Rational> = {};
+    const imports: Record<string, Rational> = {};
     const locationIds = new Set<string>();
 
     if (result.resultType === 'solved') {
@@ -202,7 +203,7 @@ export class RouteComparison {
           step.recipeId == null &&
           !producedIds.has(step.itemId)
         ) {
-          addAmount(rawInputs, step.itemId, step.items.mul(dispRateVal));
+          addAmount(imports, step.itemId, step.items.mul(dispRateVal));
         }
       }
     }
@@ -216,6 +217,7 @@ export class RouteComparison {
       power,
       pollution: pollution.mul(dispRateVal),
       rawInputs: toAmounts(rawInputs),
+      imports: toAmounts(imports),
       locationIds: Array.from(locationIds),
       current,
     };

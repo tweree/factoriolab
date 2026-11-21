@@ -35,8 +35,10 @@ export interface RouteResult {
   power: Rational;
   /** Pollution, per display rate */
   pollution: Rational;
-  /** Raw resources and unproduceable inputs, per display rate */
+  /** Raw resources (mined, pumped, or otherwise free), per display rate */
   rawInputs: RouteAmount[];
+  /** Inputs that cannot be produced by available recipes, per display rate */
+  imports: RouteAmount[];
   /** Locations required by recipes in this route */
   locationIds: string[];
   /** Whether this route matches the current solution */

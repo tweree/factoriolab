@@ -27,6 +27,7 @@ describe('RoutesDialog', () => {
     power: rational.one,
     pollution: rational.zero,
     rawInputs: [{ id: ItemId.CrudeOil, value: rational.one }],
+    imports: [{ id: ItemId.Coal, value: rational.one }],
     locationIds: [],
     current: false,
     ...override,

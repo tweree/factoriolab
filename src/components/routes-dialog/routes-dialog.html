@@ -74,6 +74,16 @@
                     ></lab-icon>
                   </span>
                 }
+                @for (input of result.imports; track input.id) {
+                  <span
+                    class="gap-0.5 text-amber-400 flex items-center"
+                    [labTooltip]="'routes.importTooltip' | translate"
+                  >
+                    <span class="font-mono">{{ input.value | rate: 1 }}</span>
+                    <lab-icon [value]="input.id" type="item"></lab-icon>
+                    <span aria-hidden="true">*</span>
+                  </span>
+                }
               </div>
             </td>
             <td>

@@ -95,6 +95,25 @@ describe('Steps', () => {
     });
   });
 
+  describe('openPlanets', () => {
+    it('should skip steps without an item', () => {
+      spyOn(component['dialog'], 'open');
+      component.openPlanets({ id: '0' });
+      expect(component['dialog'].open).not.toHaveBeenCalled();
+    });
+
+    it('should open the dialog for the step item', () => {
+      const open = spyOn(component['dialog'], 'open');
+      component.openPlanets({ id: '0', itemId: ItemId.IronPlate });
+      expect(open.calls.mostRecent().args[1]?.data).toEqual(
+        jasmine.objectContaining({
+          header: 'planets.header',
+          itemId: ItemId.IronPlate,
+        }),
+      );
+    });
+  });
+
   describe('toggleStep', () => {
     it('should toggle a step to be expanded and collapsed', () => {
       component.toggleStep('id');
