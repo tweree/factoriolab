@@ -62,6 +62,7 @@ import { ModuleSettings } from '~/state/module-settings';
 import { PreferencesStore } from '~/state/preferences/preferences-store';
 import { RouterSync } from '~/state/router/router-sync';
 import { maximizeTypeOptions } from '~/state/settings/maximize-type';
+import { optimizationGoalOptions } from '~/state/settings/optimization-goal';
 import { SettingsStore } from '~/state/settings/settings-store';
 import { TranslatePipe } from '~/translate/translate-pipe';
 import { coalesce } from '~/utils/nullish';
@@ -137,6 +138,7 @@ export class Settings {
   protected readonly addMachineValue = signal<string | null>(null);
 
   protected readonly CostSettingsDialog = CostSettingsDialog;
+  protected readonly optimizationGoalOptions = optimizationGoalOptions;
   protected readonly CUSTOM_MOD = CUSTOM_MOD;
   protected readonly CustomDataDialog = CustomDataDialog;
   protected readonly data = this.settingsStore.dataset;

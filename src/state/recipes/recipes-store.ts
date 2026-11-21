@@ -7,7 +7,7 @@ import { Adjustment } from '../adjustment';
 import { ItemsStore } from '../items/items-store';
 import { MachineState } from '../machines/machine-state';
 import { MachinesStore } from '../machines/machines-store';
-import { Dataset } from '../settings/dataset';
+import { AdjustedDataset, Dataset } from '../settings/dataset';
 import { Settings } from '../settings/settings';
 import { SettingsStore } from '../settings/settings-store';
 import { RecordStore } from '../store';
@@ -70,6 +70,27 @@ export class RecipesStore extends RecordStore<RecipeState> {
         }, {})
     );
   });
+
+  /** Compute recipe settings and the adjusted dataset for other settings */
+  adjustDatasetFor(settings: Settings): {
+    recipesSettings: Record<string, RecipeSettings>;
+    data: AdjustedDataset;
+  } {
+    const dataset = this.settingsStore.dataset();
+    const recipesSettings = this.computeRecipesSettings(
+      this.state(),
+      this.machinesStore.settings(),
+      settings,
+      dataset,
+    );
+    const data = this.adjustment.adjustDataset(
+      recipesSettings,
+      this.itemsStore.settings(),
+      settings,
+      dataset,
+    );
+    return { recipesSettings, data };
+  }
 
   private computeRecipesSettings(
     state: Record<string, RecipeState>,

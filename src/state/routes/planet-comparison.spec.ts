@@ -9,7 +9,11 @@ import { ItemId } from '~/tests/item-id';
 import { RecipeId } from '~/tests/recipe-id';
 import { TestModule } from '~/tests/test-module';
 
+import { ObjectiveType } from '../objectives/objective-type';
+import { ObjectiveUnit } from '../objectives/objective-unit';
+import { ObjectivesStore } from '../objectives/objectives-store';
 import { AdjustedDataset } from '../settings/dataset';
+import { SettingsStore } from '../settings/settings-store';
 import {
   isRecipeAllowed,
   PlanetComparison,
@@ -157,6 +161,75 @@ describe('planet-comparison', () => {
     it('should list enabled locations', () => {
       expect(service.locationIds()).toEqual(['nauvis']);
       expect(service.available()).toBeFalse();
+    });
+
+    function spyLocations(enabled: string[]): void {
+      const settingsStore = TestBed.inject(SettingsStore);
+      spyOn(settingsStore, 'dataset').and.returnValue({
+        ...settingsStore.dataset(),
+        locationIds: ['a', 'b', 'c'],
+      });
+      spyOn(settingsStore, 'settings').and.returnValue({
+        ...settingsStore.settings(),
+        locationIds: new Set(enabled),
+      });
+    }
+
+    it('should list multiple enabled locations', () => {
+      spyLocations(['a', 'b']);
+      expect(service.locationIds()).toEqual(['a', 'b']);
+    });
+
+    it('should list all locations if restricted to one location', () => {
+      spyLocations(['a']);
+      expect(service.locationIds()).toEqual(['a', 'b', 'c']);
+    });
+
+    it('should compare the factory objectives', () => {
+      const objectives = TestBed.inject(ObjectivesStore).normalizedObjectives();
+      spyOn(service, 'compareObjectives').and.returnValue([]);
+      expect(service.compareFactory()).toEqual([]);
+      expect(service.compareObjectives).toHaveBeenCalledWith(objectives);
+    });
+
+    it('should check recipe objectives and ignore non-output objectives', () => {
+      spyOn(service, 'locationIds').and.returnValue(['p1', 'p2']);
+      spyOn(TestBed.inject(Solver), 'solve').and.returnValue({
+        resultType: 'solved',
+        steps: [],
+      });
+      spyOn(TestBed.inject(RouteComparison), 'summarize').and.returnValue(
+        summary({ imports: [{ id: ItemId.Coal, value: rational.one }] }),
+      );
+      const results = service.compareObjectives([
+        {
+          id: '1',
+          targetId: RecipeId.IronPlate,
+          value: rational.one,
+          unit: ObjectiveUnit.Machines,
+          type: ObjectiveType.Output,
+          recipe: recipe({ id: RecipeId.IronPlate, locations: ['p1'] }),
+        },
+        {
+          id: '2',
+          targetId: ItemId.Coal,
+          value: rational.one,
+          unit: ObjectiveUnit.Items,
+          type: ObjectiveType.Input,
+        },
+      ]);
+      expect(results.map((r) => r.feasible)).toEqual([true, false]);
+    });
+
+    it('should restrict the factory to a location', () => {
+      const settingsStore = TestBed.inject(SettingsStore);
+      spyOn(settingsStore, 'updateField');
+      service.restrictTo('p1');
+      expect(settingsStore.updateField).toHaveBeenCalledWith(
+        'locationIds',
+        new Set(['p1']),
+        settingsStore.settings().defaultLocationIds,
+      );
     });
 
     it('should compare each location', () => {

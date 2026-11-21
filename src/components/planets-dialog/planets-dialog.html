@@ -12,6 +12,7 @@
         <th>{{ 'planets.resources' | translate }}</th>
         <th>{{ 'planets.imports' | translate }}</th>
         <th>{{ 'planets.power' | translate }}</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
@@ -130,10 +131,27 @@
               {{ 'planets.failed' | translate }}
             </td>
           }
+          <td>
+            @if (result.locationId === restrictedId()) {
+              <span class="text-sm text-gray-400">{{
+                'planets.restricted' | translate
+              }}</span>
+            } @else {
+              <button
+                type="button"
+                class="min-w-max"
+                labButton
+                text="planets.restrict"
+                [faIcon]="faLocationDot"
+                labTooltip="planets.restrictTooltip"
+                (click)="restrictTo(result.locationId)"
+              ></button>
+            }
+          </td>
         </tr>
       } @empty {
         <tr>
-          <td colspan="6">{{ 'planets.empty' | translate }}</td>
+          <td colspan="7">{{ 'planets.empty' | translate }}</td>
         </tr>
       }
     </tbody>

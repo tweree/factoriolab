@@ -234,6 +234,11 @@ export class Steps {
     if (data) this.dialog.open(PlanetsDialog, { data });
   }
 
+  openFactoryPlanets(): void {
+    const data: PlanetsDialogData = { header: 'planets.headerFactory' };
+    this.dialog.open(PlanetsDialog, { data });
+  }
+
   toggleStep(stepId: string): void {
     this.expandedSteps.update((s) =>
       s.has(stepId)

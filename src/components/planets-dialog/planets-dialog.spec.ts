@@ -6,6 +6,7 @@ import {
   PlanetComparison,
   PlanetResult,
 } from '~/state/routes/planet-comparison';
+import { SettingsStore } from '~/state/settings/settings-store';
 import { ItemId } from '~/tests/item-id';
 import { RecipeId } from '~/tests/recipe-id';
 import { TestModule } from '~/tests/test-module';
@@ -83,6 +84,50 @@ describe('PlanetsDialog', () => {
     expect(component['bestId']()).toEqual('nauvis-2');
     component['sort'].set('resources');
     expect(component['results']()[0].locationId).toEqual('nauvis-2');
+  });
+
+  it('should restrict the factory to a location', () => {
+    render();
+    const planetComparison = TestBed.inject(PlanetComparison);
+    spyOn(planetComparison, 'restrictTo');
+    spyOn(component['dialogRef'], 'close');
+    component.restrictTo('nauvis');
+    expect(planetComparison.restrictTo).toHaveBeenCalledWith('nauvis');
+    expect(component['dialogRef'].close).toHaveBeenCalled();
+  });
+
+  it('should determine the restricted location', () => {
+    render();
+    const settingsStore = TestBed.inject(SettingsStore);
+    const settings = spyOn(settingsStore, 'settings').and.returnValue({
+      ...settingsStore.settings(),
+      locationIds: new Set(['nauvis']),
+    });
+    expect(component['restrictedId']()).toEqual('nauvis');
+    settings.and.returnValue({
+      ...settingsStore.settings(),
+      locationIds: new Set(['nauvis', 'vulcanus']),
+    });
+    fixture = TestBed.createComponent(PlanetsDialog);
+    expect(fixture.componentInstance['restrictedId']()).toBeUndefined();
+  });
+
+  it('should compare the factory if no item is passed', async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [TestModule, PlanetsDialog],
+      providers: [
+        { provide: DIALOG_DATA, useValue: { header: 'planets.headerFactory' } },
+      ],
+    }).compileComponents();
+    const factory = spyOn(
+      TestBed.inject(PlanetComparison),
+      'compareFactory',
+    ).and.returnValue([result('nauvis')]);
+    const f = TestBed.createComponent(PlanetsDialog);
+    f.detectChanges();
+    expect(factory).toHaveBeenCalled();
+    expect(f.componentInstance['results']()).toHaveSize(1);
   });
 
   it('should not determine a best location if none are self-sufficient', () => {

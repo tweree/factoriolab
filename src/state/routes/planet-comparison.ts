@@ -4,9 +4,14 @@ import { AdjustedRecipe } from '~/data/schema/recipe';
 import { Rational, rational } from '~/rational/rational';
 import { Solver } from '~/solver/solver';
 
-import { ObjectiveState } from '../objectives/objective';
+import {
+  isRecipeObjective,
+  ObjectiveState,
+  RecipeObjective,
+} from '../objectives/objective';
 import { ObjectiveType } from '../objectives/objective-type';
 import { ObjectiveUnit } from '../objectives/objective-unit';
+import { ObjectivesStore } from '../objectives/objectives-store';
 import { PreferencesStore } from '../preferences/preferences-store';
 import { RecipesStore } from '../recipes/recipes-store';
 import { FACTORIO_FLUID_COST_RATIO } from '../settings/cost-settings';
@@ -122,17 +127,22 @@ export function sortPlanetResults(
  */
 @Service()
 export class PlanetComparison {
+  private readonly objectivesStore = inject(ObjectivesStore);
   private readonly preferencesStore = inject(PreferencesStore);
   private readonly recipesStore = inject(RecipesStore);
   private readonly routeComparison = inject(RouteComparison);
   private readonly settingsStore = inject(SettingsStore);
   private readonly solver = inject(Solver);
 
-  /** Locations that are enabled in the settings */
+  /**
+   * Locations to compare: The enabled locations, or all locations if the
+   * factory is restricted to a single location
+   */
   readonly locationIds = computed(() => {
     const data = this.settingsStore.dataset();
     const enabled = this.settingsStore.settings().locationIds;
-    return data.locationIds.filter((l) => enabled.has(l));
+    const ids = data.locationIds.filter((l) => enabled.has(l));
+    return ids.length > 1 ? ids : data.locationIds;
   });
 
   readonly available = computed(() => this.locationIds().length > 1);
@@ -143,12 +153,6 @@ export class PlanetComparison {
    * @param rate Rate to produce, in items per second
    */
   compare(itemId: string, rate: Rational): PlanetResult[] {
-    const data = this.recipesStore.adjustedDataset();
-    const settings = this.settingsStore.settings();
-    const recipesSettings = this.recipesStore.settings();
-    const glpkAlgorithm = this.preferencesStore.glpkAlgorithm();
-    const dispRateVal = this.settingsStore.displayRateInfo().value;
-
     const objective: ObjectiveState = {
       id: 'planet',
       targetId: itemId,
@@ -156,6 +160,34 @@ export class PlanetComparison {
       unit: ObjectiveUnit.Items,
       type: ObjectiveType.Output,
     };
+    return this.compareObjectives([objective]);
+  }
+
+  /** Compare the current objectives (the whole factory) at each location */
+  compareFactory(): PlanetResult[] {
+    return this.compareObjectives(this.objectivesStore.normalizedObjectives());
+  }
+
+  /**
+   * Compare producing a set of normalized objectives at each location. A
+   * location is feasible if all output item objectives can be produced locally
+   * and all recipe objectives are allowed there.
+   */
+  compareObjectives(objectives: ObjectiveState[]): PlanetResult[] {
+    // Use a dataset with all locations, so locations that are not enabled in
+    // the settings can still be compared
+    const settings = this.settingsStore.allLocationsSettings();
+    const { recipesSettings, data } =
+      this.recipesStore.adjustDatasetFor(settings);
+    const glpkAlgorithm = this.preferencesStore.glpkAlgorithm();
+    const dispRateVal = this.settingsStore.displayRateInfo().value;
+
+    const targetIds = new Set<string>();
+    const recipeObjectives: RecipeObjective[] = [];
+    for (const o of objectives) {
+      if (isRecipeObjective(o)) recipeObjectives.push(o);
+      else if (o.type === ObjectiveType.Output) targetIds.add(o.targetId);
+    }
 
     const weight = (a: RouteAmount): Rational =>
       data.itemRecord[a.id]?.stack == null
@@ -165,7 +197,7 @@ export class PlanetComparison {
     return this.locationIds().map((locationId): PlanetResult => {
       const restricted = restrictToLocation(data, locationId);
       const result = this.solver.solve(
-        [objective],
+        objectives,
         settings,
         restricted,
         false,
@@ -192,23 +224,41 @@ export class PlanetComparison {
         rational.zero,
       );
 
-      const recipeIds = result.steps.flatMap((s) =>
-        s.recipe?.produces.has(itemId) && s.machines?.nonzero()
-          ? [s.recipe.id]
-          : [],
-      );
+      const recipeIds: string[] = [];
+      for (const step of result.steps) {
+        const recipe = step.recipe;
+        if (
+          recipe &&
+          step.machines?.nonzero() &&
+          Array.from(targetIds).some((t) => recipe.produces.has(t))
+        )
+          recipeIds.push(recipe.id);
+      }
 
       return {
         ...summary,
         locationId,
         feasible:
           summary.resultType === 'solved' &&
-          !summary.imports.some((i) => i.id === itemId),
+          !summary.imports.some((i) => targetIds.has(i.id)) &&
+          recipeObjectives.every((o) =>
+            isRecipeAllowed(o.recipe, locationId, data),
+          ),
         recipeIds,
         resources,
         rockets,
         unshippable,
       };
     });
+  }
+
+  /** Restrict the factory to the passed location */
+  restrictTo(locationId: string): void {
+    const settings = this.settingsStore.settings();
+    this.settingsStore.updateField(
+      'locationIds',
+      new Set([locationId]),
+      settings.defaultLocationIds,
+    );
   }
 }

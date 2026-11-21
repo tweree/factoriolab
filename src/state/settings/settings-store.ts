@@ -53,6 +53,11 @@ import { Store } from '../store';
 import { Dataset } from './dataset';
 import { Defaults } from './defaults';
 import { displayRateInfo } from './display-rate';
+import {
+  applyOptimizationGoal,
+  getOptimizationGoal,
+  OptimizationGoal,
+} from './optimization-goal';
 import { Options } from './options';
 import { Preset, presetOptions } from './preset';
 import { Settings } from './settings';
@@ -211,6 +216,11 @@ export class SettingsStore extends Store<SettingsState> {
     return objectiveUnitOptions(dispRateInfo, data);
   });
 
+  /** Optimization goal matching the cost settings, undefined if custom */
+  readonly optimizationGoal = computed(() =>
+    getOptimizationGoal(this.state().costs),
+  );
+
   readonly presetOptions = computed(() => {
     const modData = this.modData();
     const data = this.dataset();
@@ -231,6 +241,15 @@ export class SettingsStore extends Store<SettingsState> {
   readonly settings = computed(() =>
     this.computeSettings(this.state(), this.defaults(), this.dataset()),
   );
+
+  /** Settings with all locations enabled, used to compare locations */
+  readonly allLocationsSettings = computed(() => {
+    const data = this.dataset();
+    const state = spread(this.state(), {
+      locationIds: new Set(data.locationIds),
+    });
+    return this.computeSettings(state, this.defaults(), data);
+  });
 
   readonly options = computed((): Options => {
     const data = this.dataset();
@@ -344,6 +363,11 @@ export class SettingsStore extends Store<SettingsState> {
       const mod = this.modInfo();
       if (mod) log('set_game', mod.game);
     });
+  }
+
+  setOptimizationGoal(goal: OptimizationGoal): void {
+    const costs = applyOptimizationGoal(this.state().costs, goal);
+    this.apply({ costs });
   }
 
   private computeDefaults(

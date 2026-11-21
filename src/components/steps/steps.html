@@ -14,6 +14,16 @@
       text="steps.downloadAsCsv"
       (click)="exporter.stepsToCsv(objectivesStore.steps())"
     ></button>
+    @if (planetComparison.available()) {
+      <button
+        type="button"
+        labButton
+        [faIcon]="faEarthEurope"
+        text="planets.compareFactory"
+        labTooltip="planets.compareFactoryTooltip"
+        (click)="openFactoryPlanets()"
+      ></button>
+    }
   }
 </div>
 

@@ -41,6 +41,24 @@ describe('SettingsStore', () => {
     expect(service).toBeTruthy();
   });
 
+  describe('optimizationGoal', () => {
+    it('should determine and set the optimization goal', () => {
+      expect(service.optimizationGoal()).toEqual('balanced');
+      service.setOptimizationGoal('buildings');
+      expect(service.optimizationGoal()).toEqual('buildings');
+      expect(service.state().costs.footprint).toEqual(rational.zero);
+    });
+  });
+
+  describe('allLocationsSettings', () => {
+    it('should enable all locations', () => {
+      service.apply({ locationIds: new Set() });
+      expect(service.allLocationsSettings().locationIds).toEqual(
+        new Set(service.dataset().locationIds),
+      );
+    });
+  });
+
   describe('customIconsUrl', () => {
     it('should return an object url', () => {
       spyOn(service.customIcons, 'value').and.returnValue({} as any);

@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faLocationDot, faXmark } from '@fortawesome/free-solid-svg-icons';
 
 import { Option } from '~/option/option';
 import { Rational } from '~/rational/rational';
@@ -31,12 +31,13 @@ import { PowerPipe } from '../steps/pipes/power-pipe';
 import { RatePipe } from '../steps/pipes/rate-pipe';
 import { Tooltip } from '../tooltip/tooltip';
 
+/** Compare an item if `itemId` and `rate` are set, otherwise the factory */
 export interface PlanetsDialogData extends DialogData {
   header: string;
-  headerParams: TranslateParams;
-  itemId: string;
+  headerParams?: TranslateParams;
+  itemId?: string;
   /** Rate to produce, in items per second */
-  rate: Rational;
+  rate?: Rational;
 }
 
 export const planetSortOptions: Option<PlanetSortKey>[] = [
@@ -72,19 +73,34 @@ export class PlanetsDialog {
   protected readonly planetComparison = inject(PlanetComparison);
   protected readonly settingsStore = inject(SettingsStore);
 
+  protected readonly faLocationDot = faLocationDot;
   protected readonly faXmark = faXmark;
   protected readonly planetSortOptions = planetSortOptions;
 
   protected readonly data = this.settingsStore.dataset;
   protected readonly sort = signal<PlanetSortKey>('buildings');
 
-  protected readonly comparison = computed(() =>
-    this.planetComparison.compare(this.dialogData.itemId, this.dialogData.rate),
-  );
+  protected readonly comparison = computed(() => {
+    const { itemId, rate } = this.dialogData;
+    if (itemId != null && rate != null)
+      return this.planetComparison.compare(itemId, rate);
+    return this.planetComparison.compareFactory();
+  });
+
+  /** Location id if the factory is restricted to a single location */
+  protected readonly restrictedId = computed(() => {
+    const ids = Array.from(this.settingsStore.settings().locationIds);
+    return ids.length === 1 ? ids[0] : undefined;
+  });
 
   protected readonly results = computed(() =>
     sortPlanetResults(this.comparison(), this.sort()),
   );
+
+  restrictTo(locationId: string): void {
+    this.planetComparison.restrictTo(locationId);
+    this.dialogRef.close();
+  }
 
   /** Location id of the best result, if any result is self-sufficient */
   protected readonly bestId = computed(() => {

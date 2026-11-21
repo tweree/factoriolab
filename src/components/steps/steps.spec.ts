@@ -114,6 +114,16 @@ describe('Steps', () => {
     });
   });
 
+  describe('openFactoryPlanets', () => {
+    it('should open the dialog for the factory', () => {
+      const open = spyOn(component['dialog'], 'open');
+      component.openFactoryPlanets();
+      expect(open.calls.mostRecent().args[1]?.data).toEqual({
+        header: 'planets.headerFactory',
+      });
+    });
+  });
+
   describe('toggleStep', () => {
     it('should toggle a step to be expanded and collapsed', () => {
       component.toggleStep('id');
