@@ -1,0 +1,290 @@
+<p class="text-sm text-gray-300">
+  {{ 'science.description' | translate }}
+</p>
+
+<div class="gap-3 flex flex-wrap items-end">
+  <lab-form-field label="science.rate" class="w-48">
+    <lab-input-number
+      [buttons]="true"
+      [ngModel]="planner.effectiveRate()"
+      (ngModelChange)="setRate($event)"
+    ></lab-input-number>
+  </lab-form-field>
+  <span class="pb-2 text-gray-300">{{
+    displayRateInfo().suffix | translate
+  }}</span>
+  <lab-form-field label="science.criterion" class="w-56">
+    <lab-select
+      [options]="criterionOptions"
+      [ngModel]="planner.criterion()"
+      (ngModelChange)="planner.criterion.set($event)"
+    ></lab-select>
+  </lab-form-field>
+</div>
+
+<section class="gap-2 flex flex-col">
+  <div class="gap-2 flex items-center">
+    <h3 class="font-semibold">{{ 'science.packs' | translate }}</h3>
+    <button
+      type="button"
+      labButton
+      text="science.selectAll"
+      (click)="planner.selectAll(true)"
+    ></button>
+    <button
+      type="button"
+      labButton
+      text="science.selectNone"
+      (click)="planner.selectAll(false)"
+    ></button>
+  </div>
+  <div class="gap-2 flex flex-wrap">
+    @for (id of planner.packIds(); track id) {
+      @let selected = planner.selectedIds().includes(id);
+      <div
+        class="gap-2 rounded-xs px-2 py-1 flex items-center border"
+        [class.border-brand-500]="selected"
+        [class.border-gray-600]="!selected"
+      >
+        <lab-checkbox
+          [ariaLabel]="data().itemRecord[id].name"
+          [ngModel]="selected"
+          (ngModelChange)="planner.togglePack(id, $event)"
+        ></lab-checkbox>
+        <lab-icon [value]="id" type="item"></lab-icon>
+        <span class="text-sm">{{ data().itemRecord[id].name }}</span>
+      </div>
+    }
+  </div>
+</section>
+
+@let plan = planner.plan();
+@if (plan.packs.length) {
+  <section class="gap-2 flex flex-col">
+    <h3 class="font-semibold">{{ 'science.plan' | translate }}</h3>
+    <p class="text-sm">
+      {{
+        'science.summary'
+          | translate
+            : {
+                buildings: (plan.buildings | rate: 0),
+                resources: (plan.resources | rate: 1),
+                baselineBuildings: (plan.baselineBuildings | rate: 0),
+                baselineResources: (plan.baselineResources | rate: 1),
+              }
+      }}
+    </p>
+    <div class="overflow-auto">
+      <table class="lab-table">
+        <thead>
+          <tr>
+            <th>{{ 'science.location' | translate }}</th>
+            <th>{{ 'science.packs' | translate }}</th>
+            <th>{{ 'science.buildings' | translate }}</th>
+            <th>{{ 'science.resources' | translate }}</th>
+            <th>{{ 'science.shipping' | translate }}</th>
+            <th>{{ 'science.imports' | translate }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (planet of plan.planets; track planet.locationId) {
+            <tr>
+              <td>
+                <div class="gap-2 flex items-center">
+                  <lab-icon
+                    [value]="planet.locationId"
+                    type="location"
+                  ></lab-icon>
+                  <span>{{
+                    data().locationRecord[planet.locationId]?.name ??
+                      planet.locationId
+                  }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="gap-1 flex flex-wrap">
+                  @for (id of planet.packIds; track id) {
+                    <lab-icon
+                      [value]="id"
+                      type="item"
+                      [labTooltip]="id"
+                      labTooltipType="item"
+                      labTooltipPosition="adjacent"
+                    ></lab-icon>
+                  }
+                </div>
+              </td>
+              <td class="font-mono">{{ planet.buildings | rate: 0 }}</td>
+              <td class="font-mono">{{ planet.resources | rate: 1 }}</td>
+              <td>
+                @if (planet.shipRockets.nonzero()) {
+                  <span class="font-mono">{{
+                    'science.rockets'
+                      | translate
+                        : {
+                            rockets: (planet.shipRockets | rate: 2),
+                            parts: (planet.rocketParts | rate: 1),
+                          }
+                  }}</span>
+                } @else if (planet.locationId === destination) {
+                  <span class="text-gray-400">{{
+                    'science.atDestination' | translate
+                  }}</span>
+                } @else {
+                  <span class="text-gray-400">{{
+                    'science.dropped' | translate
+                  }}</span>
+                }
+              </td>
+              <td>
+                <div class="gap-2 flex flex-wrap">
+                  @for (input of planet.imports; track input.id) {
+                    <span class="gap-0.5 flex items-center">
+                      <span class="font-mono">{{ input.value | rate: 1 }}</span>
+                      <lab-icon
+                        [value]="input.id"
+                        type="item"
+                        [labTooltip]="input.id"
+                        labTooltipType="item"
+                        labTooltipPosition="adjacent"
+                      ></lab-icon>
+                    </span>
+                  } @empty {
+                    <span class="text-gray-400">{{
+                      'science.noImports' | translate
+                    }}</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="min-w-max"
+                  labButton
+                  text="science.openInList"
+                  [faIcon]="faList"
+                  labTooltip="science.openInListTooltip"
+                  (click)="openInList(planet)"
+                ></button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="gap-2 flex flex-col">
+    <h3 class="font-semibold">{{ 'science.details' | translate }}</h3>
+    <div class="overflow-auto">
+      <table class="lab-table">
+        <thead>
+          <tr>
+            <th>{{ 'science.pack' | translate }}</th>
+            <th>{{ 'science.location' | translate }}</th>
+            <th>{{ 'science.buildings' | translate }}</th>
+            <th>{{ 'science.resources' | translate }}</th>
+            <th>{{ 'science.shipping' | translate }}</th>
+            <th>{{ 'science.imports' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (pack of plan.packs; track pack.itemId) {
+            @for (option of pack.options; track option.locationId) {
+              <tr [class.opacity-60]="!$first">
+                <td>
+                  @if ($first) {
+                    <div class="gap-2 flex items-center">
+                      <lab-icon [value]="pack.itemId" type="item"></lab-icon>
+                      <span>{{ data().itemRecord[pack.itemId].name }}</span>
+                    </div>
+                  }
+                </td>
+                <td>
+                  <div class="gap-2 flex items-center">
+                    <lab-icon
+                      [value]="option.locationId"
+                      type="location"
+                    ></lab-icon>
+                    <span>{{
+                      data().locationRecord[option.locationId]?.name ??
+                        option.locationId
+                    }}</span>
+                    @if ($first) {
+                      <span
+                        class="rounded-xs px-1 text-xs text-white bg-brand-700"
+                        >{{ 'science.best' | translate }}</span
+                      >
+                    }
+                    @if (!option.feasible) {
+                      <span class="text-xs text-red-400">{{
+                        'science.notProduceable' | translate
+                      }}</span>
+                    }
+                  </div>
+                </td>
+                <td class="font-mono">{{ option.buildings | rate: 0 }}</td>
+                <td class="font-mono">{{ option.resources | rate: 1 }}</td>
+                <td class="font-mono">
+                  @if (option.shipRockets.nonzero()) {
+                    {{ option.shipRockets | rate: 2 }}
+                  }
+                </td>
+                <td>
+                  <div class="gap-2 flex flex-wrap">
+                    @for (input of option.imports; track input.id) {
+                      <span
+                        class="gap-0.5 flex items-center"
+                        [labTooltip]="
+                          option.importSources[input.id].length
+                            ? ('science.sources'
+                              | translate
+                                : {
+                                    sources: locationNames(
+                                      option.importSources[input.id]
+                                    ),
+                                  })
+                            : ('science.noSource' | translate)
+                        "
+                      >
+                        <span class="font-mono">{{
+                          input.value | rate: 1
+                        }}</span>
+                        <lab-icon [value]="input.id" type="item"></lab-icon>
+                        @for (
+                          source of option.importSources[input.id].slice(0, 2);
+                          track source
+                        ) {
+                          <lab-icon
+                            class="opacity-80"
+                            [value]="source"
+                            type="location"
+                          ></lab-icon>
+                        }
+                      </span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td>
+                  <div class="gap-2 flex items-center">
+                    <lab-icon [value]="pack.itemId" type="item"></lab-icon>
+                    <span>{{ data().itemRecord[pack.itemId].name }}</span>
+                  </div>
+                </td>
+                <td colspan="5" class="text-red-400">
+                  {{ 'science.noLocation' | translate }}
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+} @else {
+  <p class="text-gray-400">{{ 'science.empty' | translate }}</p>
+}

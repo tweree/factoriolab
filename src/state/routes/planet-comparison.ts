@@ -13,14 +13,24 @@ import { ObjectiveType } from '../objectives/objective-type';
 import { ObjectiveUnit } from '../objectives/objective-unit';
 import { ObjectivesStore } from '../objectives/objectives-store';
 import { PreferencesStore } from '../preferences/preferences-store';
+import { RecipeSettings } from '../recipes/recipe-settings';
 import { RecipesStore } from '../recipes/recipes-store';
 import { FACTORIO_FLUID_COST_RATIO } from '../settings/cost-settings';
 import { AdjustedDataset } from '../settings/dataset';
+import { Settings } from '../settings/settings';
 import { SettingsStore } from '../settings/settings-store';
 import { RouteAmount, RouteResult } from './route';
 import { RouteComparison } from './route-comparison';
 
 export const SPACE_PLATFORM = 'space-platform';
+
+export interface ComparisonContext {
+  settings: Settings;
+  recipesSettings: Record<string, RecipeSettings>;
+  data: AdjustedDataset;
+  /** Dataset restricted to a location, cached */
+  restricted: (locationId: string) => AdjustedDataset;
+}
 
 export type PlanetSortKey = 'buildings' | 'resources' | 'rockets';
 
@@ -147,6 +157,11 @@ export class PlanetComparison {
 
   readonly available = computed(() => this.locationIds().length > 1);
 
+  /** All locations in the dataset */
+  readonly allLocationIds = computed(
+    () => this.settingsStore.dataset().locationIds,
+  );
+
   /**
    * Compare producing an item at each location
    * @param itemId Item to produce
@@ -163,6 +178,28 @@ export class PlanetComparison {
     return this.compareObjectives([objective]);
   }
 
+  /**
+   * Create a context for comparisons, using a dataset with all locations so
+   * that locations that are not enabled in the settings can be compared.
+   * Reuse a context for multiple comparisons to avoid recomputing datasets.
+   */
+  createContext(): ComparisonContext {
+    const settings = this.settingsStore.allLocationsSettings();
+    const { recipesSettings, data } =
+      this.recipesStore.adjustDatasetFor(settings);
+    const cache = new Map<string, AdjustedDataset>();
+    const restricted = (locationId: string): AdjustedDataset => {
+      let result = cache.get(locationId);
+      if (result == null) {
+        result = restrictToLocation(data, locationId);
+        cache.set(locationId, result);
+      }
+
+      return result;
+    };
+    return { settings, recipesSettings, data, restricted };
+  }
+
   /** Compare the current objectives (the whole factory) at each location */
   compareFactory(): PlanetResult[] {
     return this.compareObjectives(this.objectivesStore.normalizedObjectives());
@@ -173,12 +210,12 @@ export class PlanetComparison {
    * location is feasible if all output item objectives can be produced locally
    * and all recipe objectives are allowed there.
    */
-  compareObjectives(objectives: ObjectiveState[]): PlanetResult[] {
-    // Use a dataset with all locations, so locations that are not enabled in
-    // the settings can still be compared
-    const settings = this.settingsStore.allLocationsSettings();
-    const { recipesSettings, data } =
-      this.recipesStore.adjustDatasetFor(settings);
+  compareObjectives(
+    objectives: ObjectiveState[],
+    context = this.createContext(),
+    locationIds = this.locationIds(),
+  ): PlanetResult[] {
+    const { settings, recipesSettings, data } = context;
     const glpkAlgorithm = this.preferencesStore.glpkAlgorithm();
     const dispRateVal = this.settingsStore.displayRateInfo().value;
 
@@ -194,8 +231,8 @@ export class PlanetComparison {
         ? a.value.mul(FACTORIO_FLUID_COST_RATIO)
         : a.value;
 
-    return this.locationIds().map((locationId): PlanetResult => {
-      const restricted = restrictToLocation(data, locationId);
+    return locationIds.map((locationId): PlanetResult => {
+      const restricted = context.restricted(locationId);
       const result = this.solver.solve(
         objectives,
         settings,

@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import {
   faDatabase,
   faDiagramProject,
+  faFlask,
   faList,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -44,6 +45,12 @@ export class Main {
       value: 'flow',
       routerLink: 'flow',
       faIcon: faDiagramProject,
+    },
+    {
+      label: 'app.science',
+      value: 'science',
+      routerLink: 'science',
+      faIcon: faFlask,
     },
     {
       label: 'app.data',

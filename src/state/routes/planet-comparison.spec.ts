@@ -158,6 +158,15 @@ describe('planet-comparison', () => {
       service = TestBed.inject(PlanetComparison);
     });
 
+    it('should list all dataset locations', () => {
+      expect(service.allLocationIds()).toEqual(['nauvis']);
+    });
+
+    it('should cache restricted datasets in a context', () => {
+      const context = service.createContext();
+      expect(context.restricted('nauvis')).toBe(context.restricted('nauvis'));
+    });
+
     it('should list enabled locations', () => {
       expect(service.locationIds()).toEqual(['nauvis']);
       expect(service.available()).toBeFalse();

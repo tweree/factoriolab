@@ -11,6 +11,10 @@ export const routes: Routes = [
     loadComponent: () => import('./flow/flow').then((c) => c.Flow),
   },
   {
+    path: 'science',
+    loadComponent: () => import('./science/science').then((c) => c.Science),
+  },
+  {
     path: 'data',
     loadChildren: () => import('./data/data.routes').then((m) => m.routes),
   },
