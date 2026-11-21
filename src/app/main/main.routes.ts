@@ -15,6 +15,11 @@ export const routes: Routes = [
     loadComponent: () => import('./science/science').then((c) => c.Science),
   },
   {
+    path: 'distribution',
+    loadComponent: () =>
+      import('./distribution/distribution').then((c) => c.Distribution),
+  },
+  {
     path: 'data',
     loadChildren: () => import('./data/data.routes').then((m) => m.routes),
   },

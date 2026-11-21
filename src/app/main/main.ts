@@ -5,6 +5,7 @@ import {
   faDiagramProject,
   faFlask,
   faList,
+  faRoute,
 } from '@fortawesome/free-solid-svg-icons';
 
 import { TabData } from '~/components/tabs/tab-data';
@@ -51,6 +52,12 @@ export class Main {
       value: 'science',
       routerLink: 'science',
       faIcon: faFlask,
+    },
+    {
+      label: 'app.distribution',
+      value: 'distribution',
+      routerLink: 'distribution',
+      faIcon: faRoute,
     },
     {
       label: 'app.data',

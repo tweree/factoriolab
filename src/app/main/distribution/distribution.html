@@ -1,0 +1,229 @@
+<p class="text-sm text-gray-300">
+  {{ 'distribution.description' | translate }}
+</p>
+
+<div class="gap-3 flex flex-wrap items-end">
+  <lab-form-field label="distribution.destination" class="w-56">
+    <lab-select
+      [options]="destinationOptions()"
+      [ngModel]="planner.effectiveDestination()"
+      (ngModelChange)="planner.destination.set($event)"
+    ></lab-select>
+  </lab-form-field>
+  <button
+    type="button"
+    labButton
+    color="brand"
+    text="distribution.calculate"
+    [faIcon]="faPlay"
+    [disabled]="!planner.objectives().length"
+    (click)="planner.calculate()"
+  ></button>
+</div>
+
+@if (!planner.objectives().length) {
+  <p class="text-gray-400">{{ 'distribution.noObjectives' | translate }}</p>
+}
+@if (planner.hasRecipeObjectives()) {
+  <p class="text-sm text-complement-300">
+    {{ 'distribution.recipeObjectives' | translate }}
+  </p>
+}
+
+@if (planner.result(); as result) {
+  @if (result.resultType === 'solved') {
+    <p class="text-sm">
+      {{
+        'distribution.summary'
+          | translate
+            : {
+                buildings: (result.buildings | rate: 0),
+                rockets: (result.rockets | rate: 2),
+                locations: result.locations.length,
+                time: planner.time(),
+              }
+      }}
+    </p>
+
+    <section class="gap-2 flex flex-col">
+      <h3 class="font-semibold">{{ 'distribution.locations' | translate }}</h3>
+      <div class="overflow-auto">
+        <table class="lab-table">
+          <thead>
+            <tr>
+              <th>{{ 'distribution.location' | translate }}</th>
+              <th>{{ 'distribution.buildings' | translate }}</th>
+              <th>{{ 'distribution.recipes' | translate }}</th>
+              <th>{{ 'distribution.rawInputs' | translate }}</th>
+              <th>{{ 'distribution.power' | translate }}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (location of result.locations; track location.locationId) {
+              <tr>
+                <td>
+                  <div class="gap-2 flex items-center">
+                    <lab-icon
+                      [value]="location.locationId"
+                      type="location"
+                    ></lab-icon>
+                    <span>{{ locationName(location.locationId) }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="gap-1 flex flex-wrap items-center">
+                    <span class="me-1 font-mono">{{
+                      location.buildings | rate: 0
+                    }}</span>
+                    @for (machine of location.machines; track machine.id) {
+                      <lab-icon
+                        [value]="machine.id"
+                        type="item"
+                        [text]="machine.value.toString()"
+                        [labTooltip]="machine.id"
+                        labTooltipType="machine"
+                        labTooltipPosition="adjacent"
+                      ></lab-icon>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <div class="gap-1 flex flex-wrap items-center">
+                    @for (recipe of location.recipes; track recipe.recipeId) {
+                      <lab-icon
+                        [value]="recipe.recipeId"
+                        type="recipe"
+                        [text]="(recipe.machines | rate: 1).trim()"
+                        [labTooltip]="recipe.recipeId"
+                        labTooltipType="recipe"
+                        labTooltipPosition="adjacent"
+                      ></lab-icon>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <div class="gap-2 flex flex-wrap items-center">
+                    @for (input of location.rawInputs; track input.id) {
+                      <span class="gap-0.5 flex items-center">
+                        <span class="font-mono">{{
+                          input.value | rate: 1
+                        }}</span>
+                        <lab-icon
+                          [value]="input.id"
+                          type="item"
+                          [labTooltip]="input.id"
+                          labTooltipType="item"
+                          labTooltipPosition="adjacent"
+                        ></lab-icon>
+                      </span>
+                    }
+                    @for (input of location.imports; track input.id) {
+                      <span
+                        class="gap-0.5 flex items-center text-complement-300"
+                        [labTooltip]="'distribution.unavailable' | translate"
+                      >
+                        <span class="font-mono">{{
+                          input.value | rate: 1
+                        }}</span>
+                        <lab-icon [value]="input.id" type="item"></lab-icon>
+                        <span aria-hidden="true">*</span>
+                      </span>
+                    }
+                  </div>
+                </td>
+                <td class="font-mono whitespace-pre">
+                  {{
+                    location.power
+                      | power: 1 : objectivesStore.effectivePowerUnit()
+                  }}
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="min-w-max"
+                    labButton
+                    text="distribution.openInList"
+                    [faIcon]="faList"
+                    labTooltip="distribution.openInListTooltip"
+                    (click)="openInList(location)"
+                  ></button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="gap-2 flex flex-col">
+      <h3 class="font-semibold">{{ 'distribution.shipments' | translate }}</h3>
+      @if (result.shipments.length) {
+        <div class="overflow-auto">
+          <table class="lab-table">
+            <thead>
+              <tr>
+                <th>{{ 'distribution.item' | translate }}</th>
+                <th>{{ 'distribution.route' | translate }}</th>
+                <th>{{ 'distribution.amount' | translate }}</th>
+                <th>{{ 'distribution.rockets' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (shipment of result.shipments; track $index) {
+                <tr>
+                  <td>
+                    <div class="gap-2 flex items-center">
+                      <lab-icon
+                        [value]="shipment.itemId"
+                        type="item"
+                        [labTooltip]="shipment.itemId"
+                        labTooltipType="item"
+                        labTooltipPosition="adjacent"
+                      ></lab-icon>
+                      <span>{{ data().itemRecord[shipment.itemId].name }}</span>
+                      <lab-spoil-badge
+                        [itemId]="shipment.itemId"
+                      ></lab-spoil-badge>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="gap-1 flex items-center">
+                      <lab-icon
+                        [value]="shipment.from"
+                        type="location"
+                        [labTooltip]="locationName(shipment.from)"
+                      ></lab-icon>
+                      <span aria-hidden="true">→</span>
+                      <lab-icon
+                        [value]="shipment.to"
+                        type="location"
+                        [labTooltip]="locationName(shipment.to)"
+                      ></lab-icon>
+                    </div>
+                  </td>
+                  <td class="font-mono">{{ shipment.amount | rate: 1 }}</td>
+                  <td class="font-mono">
+                    @if (shipment.rockets.nonzero()) {
+                      {{ shipment.rockets | rate: 2 }}
+                    } @else {
+                      <span class="text-gray-400">{{
+                        'distribution.dropped' | translate
+                      }}</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="text-gray-400">
+          {{ 'distribution.noShipments' | translate }}
+        </p>
+      }
+    </section>
+  } @else {
+    <p class="text-complement-400">{{ 'distribution.failed' | translate }}</p>
+  }
+}
