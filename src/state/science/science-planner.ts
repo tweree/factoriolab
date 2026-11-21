@@ -10,20 +10,26 @@ import { ObjectiveUnit } from '../objectives/objective-unit';
 import { ObjectivesStore } from '../objectives/objectives-store';
 import {
   ComparisonContext,
+  hasLocalRecipe,
   isRecipeAllowed,
   PlanetComparison,
   planetRank,
   PlanetResult,
+  ROCKET_PART,
+  shippingInfo,
   SPACE_PLATFORM,
+  totalBuildings,
+  totalResources,
 } from '../routes/planet-comparison';
 import { RouteAmount } from '../routes/route';
 import { routeProducers } from '../routes/route-enumeration';
 import { AdjustedDataset } from '../settings/dataset';
 import { SettingsStore } from '../settings/settings-store';
 
+export { ROCKET_PART } from '../routes/planet-comparison';
+
 /** Science packs are always delivered to this location */
 export const SCIENCE_DESTINATION = 'nauvis';
-export const ROCKET_PART = 'rocket-part';
 
 export type ScienceCriterion = 'buildings' | 'resources';
 
@@ -45,8 +51,14 @@ export interface SciencePackPlan {
 export interface SciencePlanetSummary {
   locationId: string;
   packIds: string[];
+  /** Buildings including estimated buildings for imports */
   buildings: Rational;
+  /** Resources including resources for imports */
   resources: Rational;
+  /** Estimated buildings at other locations for imports */
+  importBuildings: Rational;
+  /** Resources at other locations for imports */
+  importResources: Rational;
   shipRockets: Rational;
   rocketParts: Rational;
   imports: RouteAmount[];
@@ -95,13 +107,23 @@ export function importSources(
   context: ComparisonContext,
   locationIds: string[],
 ): string[] {
-  const sources = locationIds.filter(
-    (l) => context.restricted(l).itemAvailableRecipeIds[itemId]?.length,
+  const sources = locationIds.filter((l) =>
+    hasLocalRecipe(context.restricted(l), itemId),
   );
   return sources.sort(
     (a, b) =>
       (a === SCIENCE_DESTINATION ? 0 : 1) - (b === SCIENCE_DESTINATION ? 0 : 1),
   );
+}
+
+/** Buildings or resources of an option, including imports */
+export function scienceTotal(
+  option: PlanetResult,
+  criterion: ScienceCriterion,
+): Rational {
+  return criterion === 'buildings'
+    ? totalBuildings(option)
+    : totalResources(option);
 }
 
 export function sortScienceOptions(
@@ -111,7 +133,9 @@ export function sortScienceOptions(
   return [...options].sort((a, b) => {
     const rank = planetRank(a) - planetRank(b);
     if (rank !== 0) return rank;
-    return a[criterion].sub(b[criterion]).toNumber();
+    return scienceTotal(a, criterion)
+      .sub(scienceTotal(b, criterion))
+      .toNumber();
   });
 }
 
@@ -124,7 +148,10 @@ function addAmounts(
 }
 
 /** Summarize the chosen options per location and compare to the baseline */
-export function buildSciencePlan(packs: SciencePackPlan[]): SciencePlan {
+export function buildSciencePlan(
+  packs: SciencePackPlan[],
+  criterion: ScienceCriterion,
+): SciencePlan {
   const planets = new Map<
     string,
     { summary: SciencePlanetSummary; imports: Record<string, Rational> }
@@ -137,15 +164,21 @@ export function buildSciencePlan(packs: SciencePackPlan[]): SciencePlan {
   for (const pack of packs) {
     const best = pack.options[0];
     if (best == null) continue;
-    buildings = buildings.add(best.buildings);
-    resources = resources.add(best.resources);
+    const imports = best.importCosts[criterion];
+    buildings = buildings.add(best.buildings).add(imports.buildings);
+    resources = resources.add(best.resources).add(imports.resources);
 
     const baseline =
       pack.options.find(
         (o) => o.locationId === SCIENCE_DESTINATION && o.feasible,
       ) ?? best;
-    baselineBuildings = baselineBuildings.add(baseline.buildings);
-    baselineResources = baselineResources.add(baseline.resources);
+    const baselineImports = baseline.importCosts[criterion];
+    baselineBuildings = baselineBuildings
+      .add(baseline.buildings)
+      .add(baselineImports.buildings);
+    baselineResources = baselineResources
+      .add(baseline.resources)
+      .add(baselineImports.resources);
 
     let entry = planets.get(best.locationId);
     if (entry == null) {
@@ -155,6 +188,8 @@ export function buildSciencePlan(packs: SciencePackPlan[]): SciencePlan {
           packIds: [],
           buildings: rational.zero,
           resources: rational.zero,
+          importBuildings: rational.zero,
+          importResources: rational.zero,
           shipRockets: rational.zero,
           rocketParts: rational.zero,
           imports: [],
@@ -166,8 +201,14 @@ export function buildSciencePlan(packs: SciencePackPlan[]): SciencePlan {
 
     const planet = entry.summary;
     planet.packIds.push(pack.itemId);
-    planet.buildings = planet.buildings.add(best.buildings);
-    planet.resources = planet.resources.add(best.resources);
+    planet.buildings = planet.buildings
+      .add(best.buildings)
+      .add(imports.buildings);
+    planet.resources = planet.resources
+      .add(best.resources)
+      .add(imports.resources);
+    planet.importBuildings = planet.importBuildings.add(imports.buildings);
+    planet.importResources = planet.importResources.add(imports.resources);
     planet.shipRockets = planet.shipRockets.add(best.shipRockets);
     planet.rocketParts = planet.rocketParts.add(best.rocketParts);
     addAmounts(entry.imports, best.imports);
@@ -239,6 +280,7 @@ export class SciencePlanner {
         itemId,
         options: sortScienceOptions(options[itemId], criterion),
       })),
+      criterion,
     );
   });
 
@@ -254,13 +296,7 @@ export class SciencePlanner {
     const { data } = context;
     const dispRateVal = this.settingsStore.displayRateInfo().value;
     const allIds = this.planetComparison.allLocationIds();
-    const capacity = data.itemRecord[itemId]?.rocketCapacity;
-    const parts = Object.values(data.machineRecord).find((m) => m.silo)?.silo
-      ?.parts;
-    const shipping =
-      capacity?.nonzero() && parts != null && data.itemRecord[ROCKET_PART]
-        ? { capacity, parts }
-        : undefined;
+    const shipping = shippingInfo(itemId, data);
 
     return packLocations(itemId, data, allIds).flatMap((locationId) => {
       const objectives: ObjectiveState[] = [

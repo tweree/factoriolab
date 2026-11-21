@@ -29,6 +29,8 @@ export interface RouteResult {
   cost?: Rational;
   /** Total number of buildings (each step rounded up) */
   buildings: Rational;
+  /** Total number of buildings, not rounded (for scaling estimates) */
+  buildingsExact: Rational;
   /** Buildings per machine id */
   machines: RouteAmount[];
   /** Power consumption, in kW */

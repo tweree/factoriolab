@@ -19,6 +19,7 @@ import {
   ASTEROID_COLLECTOR_RATE,
   isAsteroidRecipe,
 } from './asteroids';
+import { isImportRecipe } from './imports';
 import { Route, RouteAmount, RouteResult, RouteSortKey } from './route';
 import {
   enumerateRoutes,
@@ -167,6 +168,7 @@ export class RouteComparison {
     current: boolean,
   ): RouteResult {
     let buildings = rational.zero;
+    let buildingsExact = rational.zero;
     let power = rational.zero;
     let pollution = rational.zero;
     const machines: Record<string, Rational> = {};
@@ -187,7 +189,15 @@ export class RouteComparison {
         if (step.pollution) pollution = pollution.add(step.pollution);
 
         const recipe = step.recipe;
-        if (recipe && step.machines?.nonzero()) {
+        if (recipe && isImportRecipe(recipe)) {
+          if (step.machines?.nonzero())
+            for (const [outId, out] of toRecordEntries(recipe.out))
+              addAmount(
+                imports,
+                outId,
+                out.mul(step.machines).div(recipe.time).mul(dispRateVal),
+              );
+        } else if (recipe && step.machines?.nonzero()) {
           recipe.locations?.forEach((l) => locationIds.add(l));
 
           if (isAsteroidRecipe(recipe)) {
@@ -196,8 +206,10 @@ export class RouteComparison {
               .reduce((e, [, v]) => e.add(v), rational.zero)
               .mul(step.machines)
               .div(recipe.time);
-            const count = chunks.div(ASTEROID_COLLECTOR_RATE).ceil();
+            const exact = chunks.div(ASTEROID_COLLECTOR_RATE);
+            const count = exact.ceil();
             buildings = buildings.add(count);
+            buildingsExact = buildingsExact.add(exact);
             addAmount(machines, ASTEROID_COLLECTOR, count);
           }
 
@@ -205,6 +217,7 @@ export class RouteComparison {
           if (machineId != null && recipe.producers?.length) {
             const count = step.machines.ceil();
             buildings = buildings.add(count);
+            buildingsExact = buildingsExact.add(step.machines);
             addAmount(machines, machineId, count);
           }
 
@@ -229,6 +242,7 @@ export class RouteComparison {
       resultType: result.resultType,
       cost: result.cost,
       buildings,
+      buildingsExact,
       machines: toAmounts(machines),
       power,
       pollution: pollution.mul(dispRateVal),

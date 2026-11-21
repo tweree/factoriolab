@@ -46,6 +46,8 @@ describe('Science', () => {
       packIds: [],
       buildings: rational.zero,
       resources: rational.zero,
+      importBuildings: rational.zero,
+      importResources: rational.zero,
       shipRockets: rational.zero,
       rocketParts: rational.zero,
       imports: [],

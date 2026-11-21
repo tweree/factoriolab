@@ -25,6 +25,7 @@ describe('PlanetsDialog', () => {
     route: { id: locationId, choices: [] },
     resultType: 'solved',
     buildings: rational.one,
+    buildingsExact: rational.zero,
     machines: [{ id: ItemId.AssemblingMachine1, value: rational.one }],
     power: rational.one,
     pollution: rational.zero,
@@ -38,6 +39,20 @@ describe('PlanetsDialog', () => {
     resources: rational.one,
     rockets: rational.zero,
     unshippable: false,
+    importCosts: {
+      buildings: {
+        buildings: rational.zero,
+        resources: rational.zero,
+        sources: {},
+        unsourced: [],
+      },
+      resources: {
+        buildings: rational.zero,
+        resources: rational.zero,
+        sources: {},
+        unsourced: [],
+      },
+    },
     ...override,
   });
 
@@ -58,6 +73,20 @@ describe('PlanetsDialog', () => {
       result('nauvis', {
         buildings: rational(3),
         imports: [{ id: ItemId.Coal, value: rational.one }],
+        importCosts: {
+          buildings: {
+            buildings: rational.one,
+            resources: rational.zero,
+            sources: { [ItemId.Coal]: 'nauvis-2' },
+            unsourced: [],
+          },
+          resources: {
+            buildings: rational.zero,
+            resources: rational.one,
+            sources: {},
+            unsourced: [],
+          },
+        },
         rockets: rational.one,
         unshippable: true,
       }),
@@ -83,6 +112,7 @@ describe('PlanetsDialog', () => {
     ]);
     expect(component['bestId']()).toEqual('nauvis-2');
     component['sort'].set('resources');
+    expect(component['criterion']()).toEqual('resources');
     expect(component['results']()[0].locationId).toEqual('nauvis-2');
   });
 

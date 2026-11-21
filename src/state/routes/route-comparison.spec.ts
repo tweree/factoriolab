@@ -13,6 +13,7 @@ import { ObjectivesStore } from '../objectives/objectives-store';
 import { RecipeSettings } from '../recipes/recipe-settings';
 import { RecipesStore } from '../recipes/recipes-store';
 import { SettingsStore } from '../settings/settings-store';
+import { importRecipe } from './imports';
 import { Route, RouteResult } from './route';
 import { RouteComparison, sortRouteResults } from './route-comparison';
 import { routeProducers } from './route-enumeration';
@@ -38,6 +39,7 @@ describe('RouteComparison', () => {
       resultType: 'solved',
       cost: rational.zero,
       buildings: rational.zero,
+      buildingsExact: rational.zero,
       machines: [],
       power: rational.zero,
       pollution: rational.zero,
@@ -224,6 +226,7 @@ describe('RouteComparison', () => {
         resultType: 'solved',
         cost: rational(5),
         buildings: rational(6),
+        buildingsExact: rational(9, 2),
         machines: [
           { id: 'asteroid-collector', value: rational(3) },
           { id: 'drill', value: rational(2) },
@@ -241,6 +244,26 @@ describe('RouteComparison', () => {
         locationIds: ['nauvis'],
         current: true,
       });
+    });
+
+    it('should count import recipes as imports', () => {
+      const imported = importRecipe('plate', rational(5));
+      const summary = service.summarize(
+        route,
+        {
+          resultType: 'solved',
+          steps: [
+            { id: '0', recipe: imported, machines: rational(2) },
+            { id: '1', recipe: importRecipe('gear', rational(5)) },
+            { id: '2', itemId: 'plate', items: rational(2) },
+          ],
+        },
+        {},
+        rational(60),
+        false,
+      );
+      expect(summary.imports).toEqual([{ id: 'plate', value: rational(120) }]);
+      expect(summary.buildings).toEqual(rational.zero);
     });
 
     it('should return empty values for failed results', () => {

@@ -15,6 +15,10 @@ import { Tooltip } from '~/components/tooltip/tooltip';
 import { Option } from '~/option/option';
 import { Rational } from '~/rational/rational';
 import {
+  totalBuildings,
+  totalResources,
+} from '~/state/routes/planet-comparison';
+import {
   SCIENCE_DESTINATION,
   ScienceCriterion,
   SciencePlanetSummary,
@@ -57,6 +61,8 @@ export class Science {
   protected readonly faList = faList;
   protected readonly criterionOptions = scienceCriterionOptions;
   protected readonly destination = SCIENCE_DESTINATION;
+  protected readonly totalBuildings = totalBuildings;
+  protected readonly totalResources = totalResources;
 
   locationNames(ids: string[]): string {
     const record = this.data().locationRecord;

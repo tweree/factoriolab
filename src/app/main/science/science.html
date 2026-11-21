@@ -118,8 +118,26 @@
                   }
                 </div>
               </td>
-              <td class="font-mono">{{ planet.buildings | rate: 0 }}</td>
-              <td class="font-mono">{{ planet.resources | rate: 1 }}</td>
+              <td class="font-mono">
+                {{ planet.buildings | rate: 0 }}
+                @if (planet.importBuildings.nonzero()) {
+                  <span
+                    class="text-xs text-gray-400"
+                    [labTooltip]="'planets.importShareTooltip' | translate"
+                    >(+{{ planet.importBuildings | rate: 1 }})</span
+                  >
+                }
+              </td>
+              <td class="font-mono">
+                {{ planet.resources | rate: 1 }}
+                @if (planet.importResources.nonzero()) {
+                  <span
+                    class="text-xs text-gray-400"
+                    [labTooltip]="'planets.importShareTooltip' | translate"
+                    >(+{{ planet.importResources | rate: 1 }})</span
+                  >
+                }
+              </td>
               <td>
                 @if (planet.shipRockets.nonzero()) {
                   <span class="font-mono">{{
@@ -228,8 +246,26 @@
                     }
                   </div>
                 </td>
-                <td class="font-mono">{{ option.buildings | rate: 0 }}</td>
-                <td class="font-mono">{{ option.resources | rate: 1 }}</td>
+                <td class="font-mono">
+                  {{ totalBuildings(option) | rate: 0 }}
+                  @if (option.importCosts.buildings.buildings.nonzero()) {
+                    <span class="text-xs text-gray-400"
+                      >(+{{
+                        option.importCosts.buildings.buildings | rate: 1
+                      }})</span
+                    >
+                  }
+                </td>
+                <td class="font-mono">
+                  {{ totalResources(option) | rate: 1 }}
+                  @if (option.importCosts.resources.resources.nonzero()) {
+                    <span class="text-xs text-gray-400"
+                      >(+{{
+                        option.importCosts.resources.resources | rate: 1
+                      }})</span
+                    >
+                  }
+                </td>
                 <td class="font-mono">
                   @if (option.shipRockets.nonzero()) {
                     {{ option.shipRockets | rate: 2 }}
@@ -258,10 +294,13 @@
                         }}</span>
                         <lab-icon [value]="input.id" type="item"></lab-icon>
                         <lab-spoil-badge [itemId]="input.id"></lab-spoil-badge>
-                        @for (
-                          source of option.importSources[input.id].slice(0, 2);
-                          track source
+                        @if (
+                          option.importCosts[planner.criterion()].sources[
+                            input.id
+                          ];
+                          as source
                         ) {
+                          <span aria-hidden="true">←</span>
                           <lab-icon
                             class="opacity-80"
                             [value]="source"

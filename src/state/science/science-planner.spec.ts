@@ -8,6 +8,7 @@ import { TestModule } from '~/tests/test-module';
 import { ObjectivesStore } from '../objectives/objectives-store';
 import {
   ComparisonContext,
+  ImportCost,
   PlanetComparison,
   PlanetResult,
   SPACE_PLATFORM,
@@ -33,6 +34,7 @@ function planet(override: Partial<PlanetResult>): PlanetResult {
     route: { id: '', choices: [] },
     resultType: 'solved',
     buildings: rational.zero,
+    buildingsExact: rational.zero,
     machines: [],
     power: rational.zero,
     pollution: rational.zero,
@@ -46,7 +48,17 @@ function planet(override: Partial<PlanetResult>): PlanetResult {
     resources: rational.zero,
     rockets: rational.zero,
     unshippable: false,
+    importCosts: { buildings: zeroCost(), resources: zeroCost() },
     ...override,
+  };
+}
+
+function zeroCost(): ImportCost {
+  return {
+    buildings: rational.zero,
+    resources: rational.zero,
+    sources: {},
+    unsourced: [],
   };
 }
 
@@ -128,43 +140,50 @@ describe('science-planner', () => {
 
   describe('buildSciencePlan', () => {
     it('should summarize locations and the baseline', () => {
-      const plan = buildSciencePlan([
-        {
-          itemId: 'p1',
-          options: [option({ locationId: 'nauvis', buildings: rational(2) })],
-        },
-        {
-          itemId: 'p2',
-          options: [
-            option({
-              locationId: 'vulcanus',
-              buildings: rational(1),
-              resources: rational(3),
-              shipRockets: rational(1, 10),
-              rocketParts: rational(5),
-              imports: [{ id: 'x', value: rational(1) }],
-            }),
-            option({ locationId: 'nauvis', buildings: rational(4) }),
-          ],
-        },
-        {
-          itemId: 'p3',
-          options: [
-            option({
-              locationId: 'vulcanus',
-              buildings: rational(1),
-              imports: [
-                { id: 'x', value: rational(2) },
-                { id: 'y', value: rational(5) },
-              ],
-            }),
-            option({ locationId: 'nauvis', feasible: false }),
-          ],
-        },
-        { itemId: 'p4', options: [] },
-      ]);
+      const plan = buildSciencePlan(
+        [
+          {
+            itemId: 'p1',
+            options: [option({ locationId: 'nauvis', buildings: rational(2) })],
+          },
+          {
+            itemId: 'p2',
+            options: [
+              option({
+                locationId: 'vulcanus',
+                buildings: rational(1),
+                resources: rational(3),
+                shipRockets: rational(1, 10),
+                rocketParts: rational(5),
+                imports: [{ id: 'x', value: rational(1) }],
+                importCosts: {
+                  buildings: { ...zeroCost(), buildings: rational(2) },
+                  resources: { ...zeroCost(), resources: rational(1) },
+                },
+              }),
+              option({ locationId: 'nauvis', buildings: rational(4) }),
+            ],
+          },
+          {
+            itemId: 'p3',
+            options: [
+              option({
+                locationId: 'vulcanus',
+                buildings: rational(1),
+                imports: [
+                  { id: 'x', value: rational(2) },
+                  { id: 'y', value: rational(5) },
+                ],
+              }),
+              option({ locationId: 'nauvis', feasible: false }),
+            ],
+          },
+          { itemId: 'p4', options: [] },
+        ],
+        'buildings',
+      );
 
-      expect(plan.buildings).toEqual(rational(4));
+      expect(plan.buildings).toEqual(rational(6));
       expect(plan.resources).toEqual(rational(3));
       expect(plan.baselineBuildings).toEqual(rational(7));
       expect(plan.baselineResources).toEqual(rational.zero);
@@ -175,6 +194,8 @@ describe('science-planner', () => {
       const vulcanus = plan.planets[1];
       expect(vulcanus.packIds).toEqual(['p2', 'p3']);
       expect(vulcanus.shipRockets).toEqual(rational(1, 10));
+      expect(vulcanus.importBuildings).toEqual(rational(2));
+      expect(vulcanus.buildings).toEqual(rational(4));
       expect(vulcanus.imports).toEqual([
         { id: 'y', value: rational(5) },
         { id: 'x', value: rational(3) },
@@ -299,6 +320,8 @@ describe('science-planner', () => {
           packIds: [AUTOMATION],
           buildings: rational.zero,
           resources: rational.zero,
+          importBuildings: rational.zero,
+          importResources: rational.zero,
           shipRockets: rational(6, 100),
           rocketParts: rational(6),
           imports: [],

@@ -55,8 +55,17 @@
             <td>
               <div class="gap-1 flex flex-wrap items-center">
                 <span class="me-1 font-mono">{{
-                  result.buildings | rate: 0
+                  totalBuildings(result) | rate: 0
                 }}</span>
+                @if (result.importCosts.buildings.buildings.nonzero()) {
+                  <span
+                    class="me-1 text-xs text-gray-400"
+                    [labTooltip]="'planets.importShareTooltip' | translate"
+                    >(+{{
+                      result.importCosts.buildings.buildings | rate: 1
+                    }})</span
+                  >
+                }
                 @for (machine of result.machines; track machine.id) {
                   <lab-icon
                     [value]="machine.id"
@@ -72,8 +81,17 @@
             <td>
               <div class="gap-2 flex flex-wrap items-center">
                 <span class="me-1 font-semibold font-mono">{{
-                  result.resources | rate: 1
+                  totalResources(result) | rate: 1
                 }}</span>
+                @if (result.importCosts.resources.resources.nonzero()) {
+                  <span
+                    class="me-1 text-xs text-gray-400"
+                    [labTooltip]="'planets.importShareTooltip' | translate"
+                    >(+{{
+                      result.importCosts.resources.resources | rate: 1
+                    }})</span
+                  >
+                }
                 @for (input of result.rawInputs; track input.id) {
                   <span class="gap-0.5 flex items-center">
                     <span class="font-mono">{{ input.value | rate: 1 }}</span>
@@ -109,6 +127,29 @@
                       labTooltipPosition="adjacent"
                     ></lab-icon>
                     <lab-spoil-badge [itemId]="input.id"></lab-spoil-badge>
+                    @if (
+                      result.importCosts[criterion()].sources[input.id];
+                      as source
+                    ) {
+                      <lab-icon
+                        class="opacity-80"
+                        [value]="source"
+                        type="location"
+                        [labTooltip]="
+                          'planets.sourceTooltip'
+                            | translate
+                              : {
+                                  name:
+                                    data().locationRecord[source]?.name ??
+                                    source,
+                                }
+                        "
+                      ></lab-icon>
+                    } @else {
+                      <span class="text-xs text-complement-400">{{
+                        'planets.noSource' | translate
+                      }}</span>
+                    }
                   </span>
                 } @empty {
                   <span class="text-gray-400">{{

@@ -23,6 +23,7 @@ describe('RoutesDialog', () => {
     resultType: 'solved',
     cost: rational.one,
     buildings: rational.one,
+    buildingsExact: rational.zero,
     machines: [{ id: ItemId.AssemblingMachine1, value: rational.one }],
     power: rational.one,
     pollution: rational.zero,

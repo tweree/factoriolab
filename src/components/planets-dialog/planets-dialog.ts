@@ -17,6 +17,8 @@ import {
   planetRank,
   PlanetSortKey,
   sortPlanetResults,
+  totalBuildings,
+  totalResources,
 } from '~/state/routes/planet-comparison';
 import { SettingsStore } from '~/state/settings/settings-store';
 import { TranslateParams } from '~/translate/translate';
@@ -81,6 +83,12 @@ export class PlanetsDialog {
 
   protected readonly data = this.settingsStore.dataset;
   protected readonly sort = signal<PlanetSortKey>('buildings');
+  /** Criterion used to show import sources */
+  protected readonly criterion = computed(() =>
+    this.sort() === 'resources' ? 'resources' : 'buildings',
+  );
+  protected readonly totalBuildings = totalBuildings;
+  protected readonly totalResources = totalResources;
 
   protected readonly comparison = computed(() => {
     const { itemId, rate } = this.dialogData;

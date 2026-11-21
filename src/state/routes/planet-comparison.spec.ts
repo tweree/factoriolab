@@ -14,14 +14,24 @@ import { ObjectiveUnit } from '../objectives/objective-unit';
 import { ObjectivesStore } from '../objectives/objectives-store';
 import { AdjustedDataset } from '../settings/dataset';
 import { SettingsStore } from '../settings/settings-store';
+import { IMPORT_RECIPE_PREFIX } from './imports';
 import {
+  hasLocalRecipe,
+  ImportCost,
   isRecipeAllowed,
+  isShippable,
   PlanetComparison,
   planetRank,
   PlanetResult,
   restrictToLocation,
+  ROCKET_PART,
+  shippingInfo,
   sortPlanetResults,
   SPACE_PLATFORM,
+  totalBuildings,
+  totalResources,
+  weightedTotal,
+  withoutImports,
 } from './planet-comparison';
 import { RouteResult } from './route';
 import { RouteComparison } from './route-comparison';
@@ -40,15 +50,25 @@ const data = {
     a: recipe({ id: 'a' }),
     b: recipe({ id: 'b', locations: [SPACE_PLATFORM] }),
   },
+  itemIds: ['x', 'y'],
+  itemRecord: { x: { stack: rational.one, rocketCapacity: rational(10) } },
   itemAvailableRecipeIds: { x: ['a', 'b'] },
   itemAvailableIoRecipeIds: { x: ['a', 'b'], y: ['b'] },
 } as unknown as AdjustedDataset;
+
+const zeroCost = (): ImportCost => ({
+  buildings: rational.zero,
+  resources: rational.zero,
+  sources: {},
+  unsourced: [],
+});
 
 function summary(override: Partial<RouteResult>): RouteResult {
   return {
     route: { id: '', choices: [] },
     resultType: 'solved',
     buildings: rational.zero,
+    buildingsExact: rational.zero,
     machines: [],
     power: rational.zero,
     pollution: rational.zero,
@@ -69,6 +89,7 @@ function planet(override: Partial<PlanetResult>): PlanetResult {
     resources: rational.zero,
     rockets: rational.zero,
     unshippable: false,
+    importCosts: { buildings: zeroCost(), resources: zeroCost() },
     ...override,
   };
 }
@@ -116,13 +137,97 @@ describe('planet-comparison', () => {
       expect(result.itemAvailableRecipeIds).toEqual({ x: ['a'] });
       expect(result.itemAvailableIoRecipeIds).toEqual({ x: ['a'], y: [] });
     });
+
+    it('should exclude consumers of unshippable items not produced locally', () => {
+      const d = {
+        ...data,
+        itemIds: ['x', 'fluid'],
+        adjustedRecipe: {
+          a: recipe({ id: 'a', in: { fluid: rational.one } }),
+          c: recipe({ id: 'c' }),
+        },
+        itemAvailableRecipeIds: { x: ['a', 'c'], fluid: [] },
+        itemAvailableIoRecipeIds: { x: ['a', 'c'], fluid: ['a'] },
+      } as unknown as AdjustedDataset;
+      const result = restrictToLocation(d, 'nauvis');
+      expect(result.itemAvailableRecipeIds['x']).toEqual(['c']);
+      expect(result.itemAvailableIoRecipeIds['fluid']).toEqual([]);
+    });
+
+    it('should add import recipes for shippable items', () => {
+      const result = restrictToLocation(data, 'nauvis', rational(5));
+      const id = `${IMPORT_RECIPE_PREFIX}x`;
+      expect(result.itemAvailableRecipeIds['x']).toEqual(['a', id]);
+      expect(result.itemAvailableIoRecipeIds['x']).toEqual(['a', id]);
+      expect(result.adjustedRecipe[id].cost).toEqual(rational(5));
+      expect(result.itemAvailableRecipeIds['y']).toBeUndefined();
+      expect(hasLocalRecipe(result, 'x')).toBeTrue();
+      const noLocal = withoutImports(
+        { ...result, itemAvailableRecipeIds: { x: [id] } },
+        ['x', 'y'],
+      );
+      expect(hasLocalRecipe(noLocal, 'x')).toBeFalse();
+      expect(noLocal.itemAvailableIoRecipeIds['y']).toEqual([]);
+    });
+
+    it('should add import recipes for items without recipes', () => {
+      const d = {
+        ...data,
+        itemAvailableRecipeIds: {},
+        itemAvailableIoRecipeIds: {},
+      };
+      const result = restrictToLocation(d, 'nauvis', rational.one);
+      expect(result.itemAvailableRecipeIds['x']).toEqual([
+        `${IMPORT_RECIPE_PREFIX}x`,
+      ]);
+    });
+  });
+
+  describe('helpers', () => {
+    it('should check whether items can be shipped', () => {
+      expect(isShippable('x', data)).toBeTrue();
+      expect(isShippable('y', data)).toBeFalse();
+      expect(isShippable('iron-bacteria', data)).toBeFalse();
+    });
+
+    it('should weight fluids in totals', () => {
+      expect(
+        weightedTotal(
+          [
+            { id: 'x', value: rational(5) },
+            { id: 'y', value: rational(10) },
+          ],
+          data,
+        ),
+      ).toEqual(rational(6));
+    });
+
+    it('should add import costs to totals', () => {
+      const r = planet({
+        buildings: rational(2),
+        resources: rational(3),
+        importCosts: {
+          buildings: { ...zeroCost(), buildings: rational(1) },
+          resources: { ...zeroCost(), resources: rational(4) },
+        },
+      });
+      expect(totalBuildings(r)).toEqual(rational(3));
+      expect(totalResources(r)).toEqual(rational(7));
+    });
   });
 
   describe('planetRank', () => {
     it('should rank self-sufficient, importing, and infeasible results', () => {
       expect(planetRank(planet({}))).toEqual(0);
       expect(
-        planetRank(planet({ imports: [{ id: 'x', value: rational.one }] })),
+        planetRank(
+          planet({
+            importCosts: {
+              buildings: { ...zeroCost(), unsourced: ['x'] },
+              resources: zeroCost(),
+            },
+          }),
+        ),
       ).toEqual(1);
       expect(planetRank(planet({ feasible: false }))).toEqual(2);
     });
@@ -206,6 +311,10 @@ describe('planet-comparison', () => {
 
     it('should check recipe objectives and ignore non-output objectives', () => {
       spyOn(service, 'locationIds').and.returnValue(['p1', 'p2']);
+      spyOn(service, 'importCosts').and.returnValue({
+        buildings: zeroCost(),
+        resources: zeroCost(),
+      });
       spyOn(TestBed.inject(Solver), 'solve').and.returnValue({
         resultType: 'solved',
         steps: [],
@@ -246,11 +355,19 @@ describe('planet-comparison', () => {
 
     it('should compare each location', () => {
       spyOn(service, 'locationIds').and.returnValue(['p1', 'p2', 'p3']);
+      spyOn(service, 'importCosts').and.returnValue({
+        buildings: zeroCost(),
+        resources: zeroCost(),
+      });
       const plate = recipe({
         id: RecipeId.IronPlate,
         produces: new Set([ItemId.IronPlate]),
       });
       const other = recipe({ id: 'other', produces: new Set() });
+      const imported = recipe({
+        id: `${IMPORT_RECIPE_PREFIX}${ItemId.IronPlate}`,
+        produces: new Set([ItemId.IronPlate]),
+      });
       const result: SimplexResult = {
         resultType: 'solved',
         steps: [
@@ -258,6 +375,7 @@ describe('planet-comparison', () => {
           { id: '1', recipe: plate },
           { id: '2', recipe: other, machines: rational.one },
           { id: '3', itemId: ItemId.IronPlate },
+          { id: '4', recipe: imported, machines: rational.one },
         ],
       };
       spyOn(TestBed.inject(Solver), 'solve').and.returnValue(result);
@@ -284,13 +402,111 @@ describe('planet-comparison', () => {
           feasible: false,
           rockets: rational(2),
           unshippable: true,
-          resources: rational(2012),
+          resources: rational(10),
           recipeIds: [RecipeId.IronPlate],
         }),
       );
       expect(results[1].feasible).toBeTrue();
       expect(results[1].unshippable).toBeFalse();
       expect(results[2].feasible).toBeFalse();
+    });
+
+    describe('shippingInfo', () => {
+      it('should require rocket capacity, a silo and rocket parts', () => {
+        const context = service.createContext();
+        expect(shippingInfo(ItemId.IronPlate, context.data)).toBeDefined();
+        expect(shippingInfo(ItemId.PetroleumGas, context.data)).toBeUndefined();
+        expect(
+          shippingInfo(ItemId.IronPlate, {
+            ...context.data,
+            machineRecord: {},
+          }),
+        ).toBeUndefined();
+      });
+    });
+
+    describe('importCosts', () => {
+      it('should choose the cheapest source for each criterion', () => {
+        spyOn(service, 'allLocationIds').and.returnValue(['l', 'a', 'b', 'c']);
+        spyOn(service, 'unitCost').and.callFake((itemId, sourceId) => {
+          if (itemId === 'none' || sourceId === 'c') return undefined;
+          return sourceId === 'a'
+            ? { buildings: rational(1), resources: rational(10) }
+            : { buildings: rational(2), resources: rational(5) };
+        });
+        const dispRate = TestBed.inject(SettingsStore).displayRateInfo().value;
+        const result = service.importCosts(
+          [
+            { id: 'x', value: dispRate.mul(rational(2)) },
+            { id: 'none', value: rational(3) },
+          ],
+          'l',
+          service.createContext(),
+        );
+        expect(result.buildings.sources).toEqual({ x: 'a' });
+        expect(result.buildings.buildings).toEqual(rational(2));
+        expect(result.resources.sources).toEqual({ x: 'b' });
+        expect(result.resources.resources).toEqual(
+          rational(10).add(rational(3, 10)),
+        );
+        expect(result.buildings.unsourced).toEqual(['none']);
+      });
+    });
+
+    describe('unitCost', () => {
+      it('should solve and cache the cost of producing and shipping', () => {
+        const context = service.createContext();
+        const solve = spyOn(TestBed.inject(Solver), 'solve').and.callThrough();
+        const cost = service.unitCost(ItemId.IronPlate, 'nauvis', context);
+        expect(cost?.buildings.gt(rational.zero)).toBeTrue();
+        expect(solve.calls.mostRecent().args[0].map((o) => o.targetId)).toEqual(
+          [ItemId.IronPlate, ROCKET_PART],
+        );
+        expect(service.unitCost(ItemId.IronPlate, 'nauvis', context)).toBe(
+          cost,
+        );
+        expect(solve).toHaveBeenCalledTimes(1);
+      });
+
+      it('should not add rocket parts when shipping from a space platform', () => {
+        const context = service.createContext();
+        const nauvis = context.restricted('nauvis');
+        context.restricted = (): AdjustedDataset => nauvis;
+        const solve = spyOn(TestBed.inject(Solver), 'solve').and.callThrough();
+        service.unitCost(ItemId.IronPlate, SPACE_PLATFORM, context);
+        expect(solve.calls.mostRecent().args[0]).toHaveSize(1);
+      });
+
+      it('should reject sources that import the item or rocket parts', () => {
+        const context = service.createContext();
+        const summarize = spyOn(TestBed.inject(RouteComparison), 'summarize');
+        summarize.and.returnValue(
+          summary({ imports: [{ id: ROCKET_PART, value: rational.one }] }),
+        );
+        expect(
+          service.unitCost(ItemId.IronPlate, 'nauvis', context),
+        ).toBeUndefined();
+        summarize.and.returnValue(
+          summary({ imports: [{ id: ItemId.Coal, value: rational.one }] }),
+        );
+        expect(
+          service.unitCost(ItemId.CopperPlate, 'nauvis', context),
+        ).toBeDefined();
+      });
+
+      it('should return undefined if the item cannot be provided', () => {
+        const context = service.createContext();
+        expect(
+          service.unitCost(ItemId.PetroleumGas, 'nauvis', context),
+        ).toBeUndefined();
+        spyOn(TestBed.inject(Solver), 'solve').and.returnValue({
+          resultType: 'failed',
+          steps: [],
+        });
+        expect(
+          service.unitCost(ItemId.IronPlate, 'nauvis', context),
+        ).toBeUndefined();
+      });
     });
   });
 });
