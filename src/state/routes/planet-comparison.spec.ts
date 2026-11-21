@@ -27,7 +27,7 @@ import { RouteResult } from './route';
 import { RouteComparison } from './route-comparison';
 
 const recipe = (r: Partial<AdjustedRecipe>): AdjustedRecipe =>
-  ({ id: 'r', ...r }) as AdjustedRecipe;
+  ({ id: 'r', in: {}, out: {}, ...r }) as AdjustedRecipe;
 
 const data = {
   locationRecord: { nauvis: { id: 'nauvis', name: 'Nauvis' } },
@@ -82,7 +82,10 @@ describe('planet-comparison', () => {
     });
 
     it('should only allow asteroid collection in space', () => {
-      const r = recipe({ id: 'nauvis' });
+      const r = recipe({
+        id: 'solar-system-edge',
+        out: { 'metallic-asteroid-chunk': rational.one },
+      });
       expect(isRecipeAllowed(r, 'nauvis', data)).toBeFalse();
       expect(isRecipeAllowed(r, SPACE_PLATFORM, data)).toBeTrue();
     });

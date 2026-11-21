@@ -14,6 +14,11 @@ import { PreferencesStore } from '../preferences/preferences-store';
 import { RecipeSettings } from '../recipes/recipe-settings';
 import { RecipesStore } from '../recipes/recipes-store';
 import { SettingsStore } from '../settings/settings-store';
+import {
+  ASTEROID_COLLECTOR,
+  ASTEROID_COLLECTOR_RATE,
+  isAsteroidRecipe,
+} from './asteroids';
 import { Route, RouteAmount, RouteResult, RouteSortKey } from './route';
 import {
   enumerateRoutes,
@@ -184,6 +189,17 @@ export class RouteComparison {
         const recipe = step.recipe;
         if (recipe && step.machines?.nonzero()) {
           recipe.locations?.forEach((l) => locationIds.add(l));
+
+          if (isAsteroidRecipe(recipe)) {
+            // Estimate asteroid collectors from the collected chunks
+            const chunks = toRecordEntries(recipe.out)
+              .reduce((e, [, v]) => e.add(v), rational.zero)
+              .mul(step.machines)
+              .div(recipe.time);
+            const count = chunks.div(ASTEROID_COLLECTOR_RATE).ceil();
+            buildings = buildings.add(count);
+            addAmount(machines, ASTEROID_COLLECTOR, count);
+          }
 
           const machineId = recipesSettings[recipe.id]?.machineId;
           if (machineId != null && recipe.producers?.length) {

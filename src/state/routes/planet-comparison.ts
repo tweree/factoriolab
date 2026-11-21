@@ -19,6 +19,7 @@ import { FACTORIO_FLUID_COST_RATIO } from '../settings/cost-settings';
 import { AdjustedDataset } from '../settings/dataset';
 import { Settings } from '../settings/settings';
 import { SettingsStore } from '../settings/settings-store';
+import { isAsteroidRecipe } from './asteroids';
 import { RouteAmount, RouteResult } from './route';
 import { RouteComparison } from './route-comparison';
 
@@ -57,10 +58,8 @@ export function isRecipeAllowed(
   if (recipe.locations != null && !recipe.locations.includes(locationId))
     return false;
 
-  // Asteroid collection recipes are named after locations and are only
-  // available in space
-  if (data.locationRecord[recipe.id] != null && locationId !== SPACE_PLATFORM)
-    return false;
+  // Asteroid collection is only available in space
+  if (isAsteroidRecipe(recipe) && locationId !== SPACE_PLATFORM) return false;
 
   const producers = recipe.producers ?? [];
   return (

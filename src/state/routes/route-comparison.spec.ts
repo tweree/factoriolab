@@ -161,6 +161,13 @@ describe('RouteComparison', () => {
         producers: ['furnace'],
       });
       const unused = recipe({ id: 'unused', producers: ['furnace'] });
+      const asteroids = recipe({
+        id: 'nauvis',
+        out: {
+          'metallic-asteroid-chunk': rational(1, 2),
+          'carbonic-asteroid-chunk': rational(1, 2),
+        },
+      });
       const sim: SimplexResult = {
         resultType: 'solved',
         cost: rational(5),
@@ -192,6 +199,12 @@ describe('RouteComparison', () => {
           { id: '6', itemId: 'plate', items: rational(1) },
           { id: '7', itemId: 'empty' },
           { id: '8', recipe: unused, recipeId: 'unused' },
+          {
+            id: '9',
+            recipe: asteroids,
+            recipeId: 'nauvis',
+            machines: rational(1, 2),
+          },
         ],
       };
       const settings: Record<string, RecipeSettings> = {
@@ -210,8 +223,9 @@ describe('RouteComparison', () => {
         route,
         resultType: 'solved',
         cost: rational(5),
-        buildings: rational(3),
+        buildings: rational(6),
         machines: [
+          { id: 'asteroid-collector', value: rational(3) },
           { id: 'drill', value: rational(2) },
           { id: 'furnace', value: rational.one },
         ],
@@ -220,6 +234,8 @@ describe('RouteComparison', () => {
         rawInputs: [
           { id: 'water', value: rational(600) },
           { id: 'ore', value: rational(180) },
+          { id: 'metallic-asteroid-chunk', value: rational(15) },
+          { id: 'carbonic-asteroid-chunk', value: rational(15) },
         ],
         imports: [{ id: 'acid', value: rational(180) }],
         locationIds: ['nauvis'],
